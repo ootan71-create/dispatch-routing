@@ -1,0 +1,24 @@
+# Never commit runtime data (accounts, rates, dispatch history)
+data/
+*.json
+
+# Never commit tunneling binaries or backups
+ngrok/
+*.exe
+*.zip
+
+# Never commit local server scripts (they carry paths/tokens)
+server.py
+start-*.bat
+start-*.vbs
+install-*.bat
+uninstall-*.bat
+open-firewall.bat
+
+# Never commit generated reports
+*.pptx
+
+# OS/editor cruft
+.DS_Store
+Thumbs.db
+.vscode/
