@@ -4,7 +4,7 @@
 
 ## 접속
 
-- 라이브: https://ootan71.github.io/dispatch-routing/ (GitHub Pages 활성화 후)
+- 라이브: https://ootan71-create.github.io/dispatch-routing/ (GitHub Pages 활성화 후)
 - 로컬: `dispatch-routing-app.html` 파일을 브라우저로 직접 열어도 동작합니다.
 
 ## 특징
