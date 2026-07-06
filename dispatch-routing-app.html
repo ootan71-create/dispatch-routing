@@ -15428,14 +15428,29 @@ window.backupAllData = async function() {
   const status = document.getElementById('backupStatus');
   if (status) status.textContent = '⏳ 백업 데이터 수집 중...';
   try {
+    // 요율(용차 매트릭스/지입 M&M·우리/택배/단순 요율표) · 센터(도면·재고) · 배차 이력 · 마스터 · 사용자 · POLCA 매칭 · 최적화 업로드까지 전부 포함
     const dump = {
-      _meta: { version: '1.0', exportedAt: new Date().toISOString(), exportedBy: (currentUser && currentUser.username) || 'system' },
+      _meta: { version: '2.0', exportedAt: new Date().toISOString(), exportedBy: (currentUser && currentUser.username) || 'system' },
+      // 마스터
       productMaster, ownedVehicles, siteMaster,
+      // 주문/즐겨찾기
       recentOrders, favoriteOrders, favoriteFolders,
-      auditLog, customOrigin,
-      orders,
+      auditLog, customOrigin, orders,
+      // 사용자·이력
       users: await loadShared('users', []),
       dispatchHistory: await loadShared('dispatchHistory', []),
+      // 🔥 요율 (이번에 추가) — 이 부분이 빠져서 복원 후 요율이 사라졌음
+      hiredRateMatrix: (typeof hiredRateMatrix !== 'undefined' ? hiredRateMatrix : null),
+      parcelRateMatrix: (typeof parcelRateMatrix !== 'undefined' ? parcelRateMatrix : null),
+      ownedRateMM_2026: (typeof ownedRateMM !== 'undefined' ? ownedRateMM : null),
+      ownedRateWoori_2026: (typeof ownedRateWoori !== 'undefined' ? ownedRateWoori : null),
+      transportRates: (typeof transportRates !== 'undefined' ? transportRates : []),
+      // 🔥 센터 운영 (이번에 추가) — 이 부분이 빠져서 도면·재고가 사라졌음
+      centerOps: (typeof centerOps !== 'undefined' ? centerOps : null),
+      // POLCA 배차번호 매칭
+      polcaDispatch: await loadShared('polcaDispatch', null),
+      // 노선 최적화 업로드
+      optimUploads: await loadShared('optimUploads', null),
     };
     const blob = new Blob([JSON.stringify(dump, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
@@ -15444,7 +15459,7 @@ window.backupAllData = async function() {
     a.click();
     URL.revokeObjectURL(a.href);
     if (status) status.textContent = `✅ 백업 완료 (${new Date().toLocaleString('ko-KR')})`;
-    addAuditEntry('전체 백업 다운로드', '');
+    addAuditEntry('전체 백업 다운로드 v2', 'includes rates + centerOps');
   } catch(e) {
     if (status) status.textContent = `❌ 백업 실패: ${e.message}`;
   }
@@ -15458,12 +15473,22 @@ window.restoreFromBackup = function(file) {
     try {
       const dump = JSON.parse(e.target.result);
       if (!dump._meta) throw new Error('유효한 백업 파일이 아닙니다.');
-      const keys = ['productMaster','ownedVehicles','siteMaster','recentOrders','favoriteOrders','favoriteFolders','auditLog','customOrigin','users','dispatchHistory'];
+      // 서버/localStorage 양쪽에 저장되는 키 — 다음 페이지 로드 시 loadShared 가 자동 복원
+      const keys = [
+        'productMaster','ownedVehicles','siteMaster',
+        'recentOrders','favoriteOrders','favoriteFolders',
+        'auditLog','customOrigin','users','dispatchHistory',
+        // 🔥 v2 신규 키
+        'hiredRateMatrix','parcelRateMatrix',
+        'ownedRateMM_2026','ownedRateWoori_2026',
+        'transportRates','centerOps',
+        'polcaDispatch','optimUploads',
+      ];
       for (const k of keys) {
         if (dump[k] !== undefined) await saveShared(k, dump[k]);
       }
       if (dump.orders !== undefined) orders = dump.orders;
-      addAuditEntry('백업 복원', `from ${dump._meta.exportedAt} by ${dump._meta.exportedBy}`);
+      addAuditEntry('백업 복원', `from ${dump._meta.exportedAt} (v${dump._meta.version||'1.0'}) by ${dump._meta.exportedBy}`);
       if (status) status.textContent = `✅ 복원 완료. 페이지를 새로고침해 주세요.`;
       alert('복원 완료. 페이지를 새로고침합니다.');
       location.reload();
