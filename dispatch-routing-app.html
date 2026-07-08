@@ -16123,13 +16123,30 @@ const FLOORPLAN_TOOLS = [
   { id:'sprinkler',     icon:'💧', label:'스프링클러', color:'#0284c7', category:'fire' },
   { id:'exit',          icon:'🚪', label:'비상구',    color:'#16a34a', category:'fire' },
   { id:'room',          icon:'🏢', label:'실/구역',   color:'#64748b', category:'structure' },
+  { id:'workshop',      icon:'🔨', label:'작업장',    color:'#b45309', category:'structure' },
   { id:'column',        icon:'⚙️', label:'기둥',      color:'#475569', category:'structure' },
   { id:'stairs',        icon:'🪜', label:'계단',      color:'#78716c', category:'structure' },
   { id:'elevator',      icon:'🛗', label:'엘리베이터', color:'#78716c', category:'structure' },
   { id:'door',          icon:'🚪', label:'출입문',    color:'#78716c', category:'structure' },
+  { id:'emergencyDoor', icon:'🚨', label:'비상문',    color:'#16a34a', category:'structure' },
 ];
 // 3D 뷰 모드 상태
 let floorplan3D = false;
+// 🔥 소방/보안 시설 표시 여부 (기본 숨김 — 실무에서 자주 안 씀)
+let floorplanShowSecurity = false;
+window.toggleFloorplanSecurity = function() {
+  floorplanShowSecurity = !floorplanShowSecurity;
+  renderCenterSubTabContent();
+  // 3D 뷰어 열려있으면 재빌드
+  if (typeof _v3d !== 'undefined' && _v3d.scene && centerOps?.activeSubTab === 'viewer3d') {
+    const c = getActiveCenter();
+    if (c) init3DViewer(c);
+  }
+};
+// 시설이 소방·보안 카테고리인지
+function _isSecurityFireType(type) {
+  return ['cctv','security','fireExt','sprinkler','exit'].includes(type);
+}
 // 기본 센터 (최초 로드 시)
 function _defaultCenters() {
   // 동 기본 구성 (안성: A/B/C/D동 · 그 외: A동 하나로 시작)
@@ -16931,6 +16948,9 @@ window.MANUAL_DATA = {
             { id: 'v-i-10', title: '🏛️ 파렛트랙 2파렛트마다 기둥 (신규)', desc: '실제 파렛트랙 표준 구조를 반영: 모서리 4개 기둥 외에 <b>파렛트 2개마다 프레임 기둥 1개</b>씩 추가로 세워집니다. 예) 4파렛트 랙 → 중간 기둥 1개, 6파렛트 랙 → 중간 2개. 긴 랙일수록 실제 구조와 일치.' },
             { id: 'fp-door-1', title: '🚪 출입문 도면 스타일 렌더 (신규)', desc: '출입문이 실제 건축 도면 스타일로 표현됩니다: <b>벽 개구부</b>(좌우 문 스톱 포함) + <b>스윙 호</b>(열림 궤적 원호 · 점선) + <b>문짝</b>(회전 각도만큼 열림). 편집기에서 <b>가로/세로(mm)</b>, <b>회전 각도(°)</b>(0=수평 · 90=수직 벽), <b>스윙 방향</b>(좌/우 힌지), <b>열림 각도(0~90°)</b>를 개별 조정 가능. 도면 우측하단 <b>주황 리사이즈 핸들</b>로도 크기 변경 가능.' },
             { id: 'fp-facility-1', title: '🚧 시설 이동 제한 (신규)', desc: '실·엘리베이터·계단·출입문·기둥·CCTV·소화기·스프링클러·비상구는 <b>도면 밖으로 이동 불가</b>하고 <b>다른 랙·시설과 겹칠 수 없습니다</b>. 겹치는 위치로 드래그하면 이번 프레임을 스킵해 마지막 유효 좌표를 유지. <b>도크(🚛)만 예외</b>: 외벽 부착을 위해 도면 밖 배치와 겹침이 허용됩니다.' },
+            { id: 'fp-tool-emergency-door', title: '🚨 비상문 도구 (신규)', desc: '구조 팔레트에 <b>🚨 비상문</b> 추가. 출입문과 동일한 문틀·스윙 표현에 <b>초록 문짝</b>과 <b>초록 EXIT 발광 사인</b>이 문 위에 얹혀 있어 실제 도면과 동일하게 표현. 회전·스윙 방향·열림 각도 모두 조절 가능.' },
+            { id: 'fp-tool-workshop', title: '🔨 작업장 도구 (신규 · 도면 최상위)', desc: '구조 팔레트에 <b>🔨 작업장</b> 추가. 실/구역처럼 벽 있는 룸이 아니라 <b>바닥에 노랑-주황 대각 스트라이프 + 사용자 명칭</b>만 표시. 매자닌 하위 작업장과 동일한 스타일. 3D 뷰어에서도 바닥 텍스처 + 명칭만 부유 표시.' },
+            { id: 'fp-sec-toggle', title: '🛡️ 소방·보안 표시/숨김 토글 (신규)', desc: '툴바에 <b>🛡️ 소방·보안 표시/숨김</b> 버튼 추가. CCTV·무인경비·소화기·스프링클러·비상구는 실무에서 자주 참조하지 않으므로 <b>기본 숨김</b>. 필요할 때만 한 번 클릭으로 표시 전환. 2D 도면과 3D 뷰어 모두에 즉시 반영.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -16982,7 +17002,7 @@ window.MANUAL_DATA = {
       { q: '저장한 도면은 어디에 있나요?', a: '📂 불러오기 팝업에 스냅샷 목록. 자동 백업(초기화·프리셋 적용 직전)도 포함. 센터당 최근 20개 유지.' },
       { q: '전체보기와 화면 고정은 뭐가 다른가요?', a: '전체보기(F키)는 브라우저 창 전체로 확장. 화면 고정(📌)은 페이지 스크롤과 무관하게 도면을 상단 고정.' },
       { q: '줄자로 랙 사이 거리를 잴 수 있나요?', a: '📏 줄자 도구 선택 후 첫 지점 → 두번째 지점 클릭. 랙 위에서도 클릭 가능 (줄자 모드 우선). 거리 라벨은 선을 가리지 않도록 offset 표시.' },
-      { q: '1인칭 워크스루 모드는 어떻게 사용하나요?', a: '3D 뷰어의 좌측 상단 <b>🚶 1인칭 워크</b> 버튼 클릭. 사람 눈높이(1.7m)로 카메라 이동 후 WASD/↑↓←→로 이동, 마우스 클릭으로 시선 잠금, SHIFT 뛰기, SPACE 위, CTRL 아래, ESC로 종료.' },
+      { q: '1인칭 워크스루 모드는 어떻게 사용하나요?', a: '3D 뷰어의 좌측 상단 <b>🚶 1인칭 워크</b> 버튼 클릭. 사람 눈높이(1.7m)로 카메라 이동 후 WASD/↑↓←→로 이동, 마우스 클릭으로 시선 잠금, SHIFT 뛰기, SPACE 위, CTRL 아래, ESC로 종료. <b>이동 방향은 카메라가 보는 방향</b>과 정확히 일치 — 마우스로 시선을 위로 올리고 W/↑ 를 누르면 <b>위쪽으로 상승</b>, 아래로 내리고 앞으로 가면 <b>아래로 하강</b>합니다 (드론 조종과 동일).' },
       { q: '3D 뷰어의 사이드 패널이 시야를 가려요.', a: '좌측 상단 <b>📋 패널 접기</b> 버튼으로 우측 사이드바 전체를 접거나 펼칠 수 있습니다.' },
     ],
   },
@@ -17464,6 +17484,14 @@ function renderCenterFloorplan(c) {
             <button class="fp-edit-btn" onclick="alignFloorplanSelection('dist-h')" title="가로 균등 분포 (3개↑)">↔ 가로</button>
             <button class="fp-edit-btn" onclick="alignFloorplanSelection('dist-v')" title="세로 균등 분포 (3개↑)">↕ 세로</button>
           </div>
+          <!-- 🔥 소방/보안 표시 토글 -->
+          <div class="fp-edit-group">
+            <button class="fp-edit-btn" onclick="toggleFloorplanSecurity()"
+              style="${floorplanShowSecurity ? 'background:#dcfce7; color:#166534; border-color:#86efac;' : 'background:#f8fafc; color:#64748b;'} font-weight:700;"
+              title="소방·보안 시설(CCTV/소화기/스프링클러/비상구/무인경비) ${floorplanShowSecurity?'숨기기':'표시하기'}">
+              ${floorplanShowSecurity ? '🛡️ 소방·보안 표시 중' : '🛡️ 소방·보안 숨김'}
+            </button>
+          </div>
           <span style="flex:1;"></span>
           <span style="font-size:11px; color:var(--c-ink-2); background:#f8fafc; padding:3px 10px; border-radius:12px;">
             선택 <b style="color:#dc2626;">${floorplanListChecked.size}</b>개
@@ -17738,7 +17766,7 @@ function renderSelectionHandles(fp, PAD, SCALE) {
   const o = (fp.objects||[]).find(x => x.id === floorplanSelectedId);
   if (!o) return '';
   // w/h 있는 모든 오브젝트에 리사이즈 핸들 부여 (랙·도크·실·엘리베이터·계단)
-  const resizable = isRackType(o.type) || ['dock','room','elevator','stairs','door'].includes(o.type);
+  const resizable = isRackType(o.type) || ['dock','room','elevator','stairs','door','emergencyDoor','workshop'].includes(o.type);
   if (resizable && !floorplan3D) {
     // 기본 크기 (오브젝트 종류별)
     const defaults = {
@@ -17779,6 +17807,9 @@ function renderSelectionHandles(fp, PAD, SCALE) {
 
 function renderFloorplanObject(o, PAD, SCALE) {
   const isSelected = o.id === floorplanSelectedId;
+
+  // 🔥 소방/보안 시설 표시 여부에 따라 필터
+  if (!floorplanShowSecurity && _isSecurityFireType(o.type)) return '';
 
   // 랙 (신규 타입 + 레거시 호환)
   if (isRackType(o.type)) {
@@ -17890,6 +17921,88 @@ function renderFloorplanObject(o, PAD, SCALE) {
       ${stops}
       ${arcPath}
       ${doorPanel}
+    </g>`;
+  }
+  if (o.type === 'emergencyDoor') {
+    // 🔥 비상문: 초록 문 + 상단 EXIT 비상등 (사람+화살표 픽토그램 스타일)
+    //   출입문과 동일한 회전/스윙 필드 사용
+    const SCALE_ED = 8;
+    const edW = (+o.w || 1.2) * SCALE_ED;
+    const edH = (+o.h || 0.2) * SCALE_ED;
+    const edRot = +o.rotation || 0;
+    const edSwingSide = o.swingSide === 'right' ? 'right' : 'left';
+    const edSwingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
+    // 개구부 (밝은 초록 배경)
+    const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"${strokeSelected}/>`;
+    // 문 스톱
+    const edStops = `<line x1="0" y1="${edH/2}" x2="-4" y2="${edH/2}" stroke="#166534" stroke-width="1.8"/>
+                     <line x1="${edW}" y1="${edH/2}" x2="${edW+4}" y2="${edH/2}" stroke="#166534" stroke-width="1.8"/>`;
+    // 문짝 (초록)
+    const edHingeX = edSwingSide === 'right' ? edW : 0;
+    const edDoorRot = edSwingSide === 'right' ? edSwingAngle : -edSwingAngle;
+    const edPanel = `<g transform="translate(${edHingeX} ${edH/2}) rotate(${edDoorRot})">
+        <rect x="${edSwingSide === 'right' ? -edW : 0}" y="-1.5" width="${edW}" height="3" fill="#16a34a" stroke="#166534" stroke-width="1"/>
+      </g>`;
+    // 스윙 호
+    let edArc = '';
+    if (edSwingAngle > 0) {
+      const rad = edSwingAngle * Math.PI/180;
+      if (edSwingSide === 'right') {
+        const ex = edHingeX - edW * Math.cos(rad);
+        const ey = edH/2 - edW * Math.sin(rad);
+        edArc = `<path d="M ${edHingeX - edW} ${edH/2} A ${edW} ${edW} 0 0 1 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.7"/>`;
+      } else {
+        const ex = edHingeX + edW * Math.cos(rad);
+        const ey = edH/2 - edW * Math.sin(rad);
+        edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.7"/>`;
+      }
+    }
+    // 🔥 비상등 (개구부 위에 초록 EXIT 사인) — 발광 효과 (여러 겹 그라디언트)
+    const signW = Math.max(edW * 0.55, 14);
+    const signH = 8;
+    const signX = (edW - signW) / 2;
+    const signY = -signH - 2;
+    const emergencySign = `<g>
+      <!-- 발광 후광 -->
+      <rect x="${signX - 3}" y="${signY - 3}" width="${signW + 6}" height="${signH + 6}" rx="2" fill="#22c55e" opacity="0.25"/>
+      <!-- 사인 몸체 -->
+      <rect x="${signX}" y="${signY}" width="${signW}" height="${signH}" rx="1.5" fill="#16a34a" stroke="#166534" stroke-width="0.6"/>
+      <!-- EXIT 텍스트 -->
+      <text x="${signX + signW/2}" y="${signY + signH/2 + 2.5}" text-anchor="middle" font-size="6" font-weight="700" fill="#fff" font-family="Arial, sans-serif" letter-spacing="0.5">EXIT</text>
+      <!-- 좌우 화살표 (내부 라인) -->
+      <line x1="${signX + 2}" y1="${signY + signH/2}" x2="${signX + signW - 2}" y2="${signY + signH/2}" stroke="#fff" stroke-width="0.3" opacity="0.35"/>
+    </g>`;
+    const cxED = x, cyED = y;
+    return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
+      transform="translate(${cxED - edW/2} ${cyED - edH/2}) rotate(${edRot} ${edW/2} ${edH/2})"
+      onmousedown="startFloorplanDrag(event, '${o.id}')"
+      onclick="event.stopPropagation(); selectFloorplanObj('${o.id}', event)">
+      ${edOpening}
+      ${edStops}
+      ${edArc}
+      ${edPanel}
+      ${emergencySign}
+    </g>`;
+  }
+  if (o.type === 'workshop') {
+    // 🔥 도면 최상위 작업장: 노랑-주황 대각 스트라이프 바닥 + 라벨만
+    const SCALE_WS = 8;
+    const wsW = (+o.w || 4) * SCALE_WS;
+    const wsH = (+o.h || 3) * SCALE_WS;
+    const patternId = `wsFloorStripe-${o.id}`;
+    return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
+      onmousedown="startFloorplanDrag(event, '${o.id}')"
+      onclick="event.stopPropagation(); selectFloorplanObj('${o.id}', event)">
+      <defs>
+        <pattern id="${patternId}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect width="8" height="8" fill="#fef3c7"/>
+          <rect width="4" height="8" fill="#f59e0b" opacity="0.65"/>
+        </pattern>
+      </defs>
+      <rect x="${x}" y="${y}" width="${wsW}" height="${wsH}" rx="3"
+        fill="url(#${patternId})" stroke="#b45309" stroke-width="2" stroke-dasharray="6 3"${strokeSelected}/>
+      <text x="${x + wsW/2}" y="${y + wsH/2 - 4}" text-anchor="middle" font-size="14" fill="#78350f" font-weight="700" pointer-events="none">🔨</text>
+      <text x="${x + wsW/2}" y="${y + wsH/2 + 12}" text-anchor="middle" font-size="12" fill="#78350f" font-weight="700" pointer-events="none">${o.label || '작업장'}</text>
     </g>`;
   }
   if (o.type === 'dock') {
@@ -19609,11 +19722,11 @@ function renderNonRackEditor(c, o) {
         onchange="updateFloorplanObjSizeMm('${c.id}','${o.id}','${field}', +this.value||0)"
         style="padding:6px 8px; border:1px solid var(--c-border); border-radius:5px; font-size:12px; background:var(--c-surface); color:var(--c-ink); font-weight:500; text-align:right;">
     </div>`;
-  const hasSize = ['dock','room','elevator','stairs','door'].includes(o.type);
+  const hasSize = ['dock','room','elevator','stairs','door','emergencyDoor','workshop'].includes(o.type);
   const isRoom = o.type === 'room';
   const isCctv = o.type === 'cctv';
   const isDock = o.type === 'dock';
-  const isDoor = o.type === 'door';
+  const isDoor = o.type === 'door' || o.type === 'emergencyDoor';
   const m2 = hasSize ? (+o.w||0) * (+o.h||0) : 0;
   const py = areaPyeong(m2);
   const heightM = objectHeightM(o);
@@ -20442,6 +20555,8 @@ function v3dBuildScene(c) {
   const coreMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.7 });
   const roomMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8, transparent: true, opacity: 0.55 });
   nonRackObjs.forEach(o => {
+    // 🔥 소방/보안 시설은 토글 상태에 따라 렌더 스킵
+    if (!floorplanShowSecurity && _isSecurityFireType(o.type)) return;
     if (o.type === 'dock') {
       // 🔥 도크 (상하차) — 노랑-검정 스트라이프 바닥 + 셔터 뒷벽 + 크레들 범퍼
       const dw = +o.w || 3;
@@ -20494,6 +20609,7 @@ function v3dBuildScene(c) {
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'elevator') {
       // 🔥 화물 엘리베이터 — 샤프트 + 앞면 문 (수직 슬릿) + 상단 지시등 + 발광 라벨
+      //   📌 문은 도면상 아래쪽(z+ 방향, 창고 안쪽)을 향함 — 사용자 요청
       const w = o.w || 2.5, h = o.h || 2.5;
       const p = t(o.x + w/2, o.y + h/2);
       const shaftH = 4.5;
@@ -20503,28 +20619,109 @@ function v3dBuildScene(c) {
       shaft.position.set(p.x, shaftH/2, p.z);
       shaft.castShadow = true;
       _v3d.buildingGroup.add(shaft);
-      // 앞면 문 (밝은 은색)
+      // 앞면 문 (밝은 은색) — z+ 방향 (도면 아래쪽) 면에 부착
       const doorMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.35, metalness: 0.8 });
       const doorW = w * 0.7, doorH = shaftH * 0.75;
       const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.05), doorMat);
-      door.position.set(p.x, doorH/2 + 0.1, p.z - h/2 - 0.03);
+      door.position.set(p.x, doorH/2 + 0.1, p.z + h/2 + 0.03);
       _v3d.buildingGroup.add(door);
       // 중앙 슬릿 (문 갈림)
       const slitMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
       const slit = new THREE.Mesh(new THREE.BoxGeometry(0.05, doorH, 0.08), slitMat);
-      slit.position.set(p.x, doorH/2 + 0.1, p.z - h/2 - 0.06);
+      slit.position.set(p.x, doorH/2 + 0.1, p.z + h/2 + 0.06);
       _v3d.buildingGroup.add(slit);
       // 상단 지시등 (녹색 발광)
       const indMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.8 });
       const indicator = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.1), indMat);
-      indicator.position.set(p.x, shaftH - 0.35, p.z - h/2 - 0.06);
+      indicator.position.set(p.x, shaftH - 0.35, p.z + h/2 + 0.06);
       _v3d.buildingGroup.add(indicator);
-      // 라벨 (문 위, 크게, 노랑 배경)
+      // 라벨 (문 위, 크게, 노랑 배경) — 문과 같은 z+ 면에
       const evLabel = o.label || '화물 EV';
       const tex = _v3dTextTex(evLabel, '#fef3c7', '#b45309', 384, 96);
       const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.9, 2.5), 0.6), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-      lbl.position.set(p.x, doorH + 0.55, p.z - h/2 - 0.08);
+      lbl.position.set(p.x, doorH + 0.55, p.z + h/2 + 0.08);
+      lbl.rotation.y = Math.PI; // z+ 면을 바라보므로 라벨을 180도 뒤집어 정면 노출
       _v3d.buildingGroup.add(lbl);
+    } else if (o.type === 'workshop') {
+      // 🔥 도면 최상위 작업장 — 매자닌 하위 작업장과 같은 스타일: 바닥 스트라이프 + 라벨만
+      const w = +o.w || 4, dp = +o.h || 3;
+      const p = t(o.x + w/2, o.y + dp/2);
+      const wsCanvas = document.createElement('canvas');
+      wsCanvas.width = 128; wsCanvas.height = 128;
+      const wctx = wsCanvas.getContext('2d');
+      wctx.fillStyle = '#fef3c7'; wctx.fillRect(0, 0, 128, 128);
+      wctx.fillStyle = '#f59e0b';
+      for (let i = -128; i < 256; i += 20) {
+        wctx.save(); wctx.translate(64, 64); wctx.rotate(Math.PI/4); wctx.fillRect(i, -128, 10, 256); wctx.restore();
+      }
+      const wsTex = new THREE.CanvasTexture(wsCanvas);
+      wsTex.wrapS = wsTex.wrapT = THREE.RepeatWrapping;
+      wsTex.repeat.set(Math.max(1, Math.round(w*0.7)), Math.max(1, Math.round(dp*0.7)));
+      const wsMat = new THREE.MeshStandardMaterial({ map: wsTex, roughness: 0.85, side: THREE.DoubleSide });
+      const wsFloor = new THREE.Mesh(new THREE.PlaneGeometry(w, dp), wsMat);
+      wsFloor.rotation.x = -Math.PI/2;
+      wsFloor.position.set(p.x, 0.03, p.z);
+      _v3d.buildingGroup.add(wsFloor);
+      // 테두리 (진한 주황 라인)
+      const edgeMat = new THREE.LineBasicMaterial({ color: 0xb45309, linewidth: 2 });
+      const edgeGeo = new THREE.BufferGeometry().setFromPoints([
+        new THREE.Vector3(p.x - w/2, 0.04, p.z - dp/2),
+        new THREE.Vector3(p.x + w/2, 0.04, p.z - dp/2),
+        new THREE.Vector3(p.x + w/2, 0.04, p.z + dp/2),
+        new THREE.Vector3(p.x - w/2, 0.04, p.z + dp/2),
+        new THREE.Vector3(p.x - w/2, 0.04, p.z - dp/2),
+      ]);
+      _v3d.buildingGroup.add(new THREE.Line(edgeGeo, edgeMat));
+      // 라벨: 사용자가 지정한 명칭 (바닥 위에 부유)
+      const wsLbl = o.label || '작업장';
+      const wsTexLbl = _v3dTextTex(`🔨 ${wsLbl}`, '#fef3c7', '#78350f', 512, 128);
+      const wsLblMesh = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.8, 4), 0.8), new THREE.MeshBasicMaterial({ map: wsTexLbl, transparent: true }));
+      wsLblMesh.rotation.x = -Math.PI/2;
+      wsLblMesh.position.set(p.x, 0.07, p.z);
+      _v3d.buildingGroup.add(wsLblMesh);
+    } else if (o.type === 'emergencyDoor') {
+      // 🔥 비상문 — 초록 문 + 상단 EXIT 발광 사인
+      const w = +o.w || 1.2, dp = +o.h || 0.2;
+      const p = t(o.x + w/2, o.y + dp/2);
+      // 개구부 (얇은 프레임)
+      const frameMat = new THREE.MeshStandardMaterial({ color: 0x166534, roughness: 0.6 });
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, dp), frameMat);
+      frame.position.set(p.x, 1.1, p.z);
+      _v3d.buildingGroup.add(frame);
+      // 문짝 (초록)
+      const doorGMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, roughness: 0.55, emissive: 0x14532d, emissiveIntensity: 0.15 });
+      const doorMesh = new THREE.Mesh(new THREE.BoxGeometry(w * 0.9, 2.0, 0.05), doorGMat);
+      doorMesh.position.set(p.x, 1.0, p.z + dp/2 + 0.03);
+      _v3d.buildingGroup.add(doorMesh);
+      // 발광 EXIT 사인 (초록 발광)
+      const signCanvas = document.createElement('canvas');
+      signCanvas.width = 256; signCanvas.height = 96;
+      const sctx = signCanvas.getContext('2d');
+      sctx.fillStyle = '#16a34a'; sctx.fillRect(0, 0, 256, 96);
+      sctx.strokeStyle = '#166534'; sctx.lineWidth = 4;
+      sctx.strokeRect(2, 2, 252, 92);
+      sctx.fillStyle = '#fff';
+      sctx.font = 'bold 56px Arial';
+      sctx.textAlign = 'center'; sctx.textBaseline = 'middle';
+      sctx.fillText('EXIT', 128, 52);
+      const signTex = new THREE.CanvasTexture(signCanvas);
+      const signMat = new THREE.MeshBasicMaterial({ map: signTex, transparent: true });
+      const signMesh = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.85, 1.4), 0.5), signMat);
+      signMesh.position.set(p.x, 2.55, p.z + dp/2 + 0.05);
+      _v3d.buildingGroup.add(signMesh);
+      // 초록 후광 효과 (약간 큰 반투명 초록 판)
+      const glowMat = new THREE.MeshBasicMaterial({ color: 0x22c55e, transparent: true, opacity: 0.35 });
+      const glow = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.95, 1.7), 0.7), glowMat);
+      glow.position.set(p.x, 2.55, p.z + dp/2 + 0.02);
+      _v3d.buildingGroup.add(glow);
+      // 라벨(선택): 사용자 라벨이 있으면 문 아래에
+      if (o.label && o.label !== '비상구') {
+        const lblTex = _v3dTextTex(o.label, '#dcfce7', '#166534', 256, 64);
+        const lblMesh = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.9, 1.3), 0.35), new THREE.MeshBasicMaterial({ map: lblTex, transparent: true }));
+        lblMesh.rotation.x = -Math.PI/2;
+        lblMesh.position.set(p.x, 0.06, p.z + dp/2 + 0.5);
+        _v3d.buildingGroup.add(lblMesh);
+      }
     } else if (o.type === 'stairs') {
       // 🔥 계단 — 실제 단(step) 형태로 렌더 (박스 하나 대신 계단 단수만큼 계단상승)
       const w = o.w || 3, dp = o.h || 4;
@@ -20861,7 +21058,17 @@ function _v3dDetachWalkListeners() {
 function updateWalkMovement(dt) {
   const w = _v3d.walk;
   const speed = (w.keys['ShiftLeft'] || w.keys['ShiftRight']) ? w.runSpeed : w.speed;
-  const forward = new THREE.Vector3(Math.sin(w.yaw), 0, Math.cos(w.yaw));
+  // 🔥 forward 벡터에 pitch 반영: 마우스로 카메라를 위로 올린 상태에서 W/↑ 누르면 위로 상승
+  //   THREE.js YXZ 회전 기준: 시선 방향 = (sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))
+  //   기존 코드가 -forward를 앞쪽으로 사용하므로 forward 부호에 맞춰 동일하게 구성
+  //   pitch가 +일 때 시선이 위로 향함(카메라 rotation.x = pitch, 시선은 -Z 방향이지만 THREE는 반대 조합).
+  //   기존 코드: forward = (sin(yaw), 0, cos(yaw)) · W → move.sub(forward) 로 -Z 진행
+  //   여기서는 pitch를 반영해 y 성분을 추가 — pitch > 0 (시선 위) 이면 y가 양수가 되도록.
+  const forward = new THREE.Vector3(
+    Math.sin(w.yaw) * Math.cos(w.pitch),
+    -Math.sin(w.pitch),                    // pitch가 양수(시선 위)면 W 진행 시 y 증가
+    Math.cos(w.yaw) * Math.cos(w.pitch)
+  );
   const right   = new THREE.Vector3(Math.cos(w.yaw), 0, -Math.sin(w.yaw));
   const move = new THREE.Vector3();
   if (w.keys['KeyW'] || w.keys['ArrowUp'])    move.sub(forward);
@@ -21176,6 +21383,19 @@ window.handleFloorplanClick = async function(evt, centerId) {
     newObj.swingSide = 'left';
     newObj.swingAngle = 90;
     newObj.label = '';
+  }
+  // 비상문: 출입문과 동일한 기본값
+  if (floorplanTool === 'emergencyDoor') {
+    newObj.w = 1.2; newObj.h = 0.2;
+    newObj.rotation = 0;
+    newObj.swingSide = 'left';
+    newObj.swingAngle = 90;
+    newObj.label = '비상구';
+  }
+  // 도면 최상위 작업장: 노랑-주황 스트라이프 구역 4m × 3m
+  if (floorplanTool === 'workshop') {
+    newObj.w = 4; newObj.h = 3;
+    newObj.label = '작업장';
   }
   if (floorplanTool === 'dock') {
     newObj.w = 3; newObj.h = 2; newObj.heightM = 3.5;
@@ -21750,7 +21970,7 @@ window.startFloorplanDrag = function(evt, objId) {
 // 시설 오브젝트 판정 — 도크는 도면 경계 밖(외벽)에 붙어야 하므로 제외
 //   이동 제한(겹침/도면밖) 대상: 실·엘리베이터·계단·출입문·기둥·CCTV·소화기·스프링클러·비상구
 function _isConstrainedFacility(type) {
-  return ['room','elevator','stairs','door','column','cctv','fireExt','sprinkler','exit'].includes(type);
+  return ['room','elevator','stairs','door','emergencyDoor','workshop','column','cctv','fireExt','sprinkler','exit'].includes(type);
 }
 // 시설의 실효 footprint (점 오브젝트는 근사 사각형)
 function _facilityFootprint(o) {
