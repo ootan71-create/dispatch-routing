@@ -16929,6 +16929,8 @@ window.MANUAL_DATA = {
             { id: 'v-i-8', title: '🟪 매자닌 선반랙 구조화 (개선)', desc: '기존 단순 다층 박스에서 <b>실제 선반 구조</b>로 개선: <b>4모서리 기둥</b>(짙은 보라) + 각 단마다 <b>얇은 판</b> + 판 위 <b>물품 상자</b>(밝은 보라, 반투명) + 상판. 매자닌 내부에서도 진짜 선반랙임이 즉시 인식됨.' },
             { id: 'v-i-9', title: '🔨 매자닌 작업장 3D 개선 (신규)', desc: '기존에 높은 다층 박스로 잘못 렌더되던 작업장이 <b>바닥 스트라이프 구역 + 사용자 지정 명칭만 표시</b>하는 형태로 수정. 매자닌 층 위에 노랑-주황 대각 스트라이프 바닥 + 진한 주황 테두리 + "🔨 (사용자 지정 라벨)" 오버레이. 저장 랙과 명확히 구분.' },
             { id: 'v-i-10', title: '🏛️ 파렛트랙 2파렛트마다 기둥 (신규)', desc: '실제 파렛트랙 표준 구조를 반영: 모서리 4개 기둥 외에 <b>파렛트 2개마다 프레임 기둥 1개</b>씩 추가로 세워집니다. 예) 4파렛트 랙 → 중간 기둥 1개, 6파렛트 랙 → 중간 2개. 긴 랙일수록 실제 구조와 일치.' },
+            { id: 'fp-door-1', title: '🚪 출입문 도면 스타일 렌더 (신규)', desc: '출입문이 실제 건축 도면 스타일로 표현됩니다: <b>벽 개구부</b>(좌우 문 스톱 포함) + <b>스윙 호</b>(열림 궤적 원호 · 점선) + <b>문짝</b>(회전 각도만큼 열림). 편집기에서 <b>가로/세로(mm)</b>, <b>회전 각도(°)</b>(0=수평 · 90=수직 벽), <b>스윙 방향</b>(좌/우 힌지), <b>열림 각도(0~90°)</b>를 개별 조정 가능. 도면 우측하단 <b>주황 리사이즈 핸들</b>로도 크기 변경 가능.' },
+            { id: 'fp-facility-1', title: '🚧 시설 이동 제한 (신규)', desc: '실·엘리베이터·계단·출입문·기둥·CCTV·소화기·스프링클러·비상구는 <b>도면 밖으로 이동 불가</b>하고 <b>다른 랙·시설과 겹칠 수 없습니다</b>. 겹치는 위치로 드래그하면 이번 프레임을 스킵해 마지막 유효 좌표를 유지. <b>도크(🚛)만 예외</b>: 외벽 부착을 위해 도면 밖 배치와 겹침이 허용됩니다.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -17736,7 +17738,7 @@ function renderSelectionHandles(fp, PAD, SCALE) {
   const o = (fp.objects||[]).find(x => x.id === floorplanSelectedId);
   if (!o) return '';
   // w/h 있는 모든 오브젝트에 리사이즈 핸들 부여 (랙·도크·실·엘리베이터·계단)
-  const resizable = isRackType(o.type) || ['dock','room','elevator','stairs'].includes(o.type);
+  const resizable = isRackType(o.type) || ['dock','room','elevator','stairs','door'].includes(o.type);
   if (resizable && !floorplan3D) {
     // 기본 크기 (오브젝트 종류별)
     const defaults = {
@@ -17835,10 +17837,59 @@ function renderFloorplanObject(o, PAD, SCALE) {
     </g>`;
   }
   if (o.type === 'door') {
+    // 🔥 실제 건축 도면 스타일: 벽 개구부 + 문틀 + 열린 문(직선) + 스윙 호(원호)
+    //   · w: 문 폭(m, 기본 1.2m) · h: 벽 두께(m, 기본 0.2m)
+    //   · rotation: 도(°) 단위 회전 (기본 0 = 수평 벽)
+    //   · swingSide: 'left'|'right' (스윙 방향), swingAngle: 열림 각도(0~90°)
+    const SCALE_D = 8;
+    const dw = (+o.w || 1.2) * SCALE_D;   // 문 폭
+    const dh = (+o.h || 0.2) * SCALE_D;   // 벽 두께
+    const rot = +o.rotation || 0;
+    const swingSide = o.swingSide === 'right' ? 'right' : 'left';
+    const swingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
+    // 벽 개구부: 얇은 밝은 회색 사각형 (양쪽 문 스톱 강조)
+    const wallOpening = `<rect x="0" y="0" width="${dw}" height="${dh}" fill="#f8fafc" stroke="#0f172a" stroke-width="1.2"${strokeSelected}/>`;
+    // 좌우 문 스톱 (벽 잔여 부분 검은 얇은 선)
+    const stops = `<line x1="0" y1="${dh/2}" x2="-4" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8"/>
+                   <line x1="${dw}" y1="${dh/2}" x2="${dw+4}" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8"/>`;
+    // 문짝 (문틀에 붙어서 스윙 각도만큼 회전)
+    //   left: 왼쪽 문틀(0,dh/2)을 축으로 시계반대방향 -swingAngle
+    //   right: 오른쪽 문틀(dw,dh/2)을 축으로 시계방향 +swingAngle
+    const hingeX = swingSide === 'right' ? dw : 0;
+    const hingeY = dh/2;
+    const doorRot = swingSide === 'right' ? swingAngle : -swingAngle;
+    const doorPanel = `<g transform="translate(${hingeX} ${hingeY}) rotate(${doorRot})">
+        <rect x="${swingSide === 'right' ? -dw : 0}" y="-1.5" width="${dw}" height="3" fill="#78716c" stroke="#44403c" stroke-width="1"/>
+      </g>`;
+    // 스윙 호 (열림 궤적 원호)
+    // startAngle=0 (문틀 방향), endAngle=swingAngle 방향 · SVG 는 좌표계 상 y 아래로 증가하므로 반시계=음수
+    const arcR = dw;
+    let arcPath = '';
+    if (swingAngle > 0) {
+      if (swingSide === 'right') {
+        // 오른쪽 문틀 축, 왼쪽으로 열림 → 시작점 = (hingeX - dw, hingeY) 방향
+        const rad = swingAngle * Math.PI/180;
+        const ex = hingeX - dw * Math.cos(rad);
+        const ey = hingeY - dw * Math.sin(rad);
+        arcPath = `<path d="M ${hingeX - dw} ${hingeY} A ${arcR} ${arcR} 0 0 1 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65"/>`;
+      } else {
+        // 왼쪽 문틀 축, 오른쪽으로 열림
+        const rad = swingAngle * Math.PI/180;
+        const ex = hingeX + dw * Math.cos(rad);
+        const ey = hingeY - dw * Math.sin(rad);
+        arcPath = `<path d="M ${hingeX + dw} ${hingeY} A ${arcR} ${arcR} 0 0 0 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65"/>`;
+      }
+    }
+    // 회전 중심 = 개구부 중앙
+    const cxD = x, cyD = y;
     return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
+      transform="translate(${cxD - dw/2} ${cyD - dh/2}) rotate(${rot} ${dw/2} ${dh/2})"
       onmousedown="startFloorplanDrag(event, '${o.id}')"
       onclick="event.stopPropagation(); selectFloorplanObj('${o.id}', event)">
-      <rect x="${x-14}" y="${y-4}" width="28" height="8" fill="#a8a29e" stroke="#78716c" stroke-width="1.5"${strokeSelected}/>
+      ${wallOpening}
+      ${stops}
+      ${arcPath}
+      ${doorPanel}
     </g>`;
   }
   if (o.type === 'dock') {
@@ -19558,10 +19609,11 @@ function renderNonRackEditor(c, o) {
         onchange="updateFloorplanObjSizeMm('${c.id}','${o.id}','${field}', +this.value||0)"
         style="padding:6px 8px; border:1px solid var(--c-border); border-radius:5px; font-size:12px; background:var(--c-surface); color:var(--c-ink); font-weight:500; text-align:right;">
     </div>`;
-  const hasSize = ['dock','room','elevator','stairs'].includes(o.type);
+  const hasSize = ['dock','room','elevator','stairs','door'].includes(o.type);
   const isRoom = o.type === 'room';
   const isCctv = o.type === 'cctv';
   const isDock = o.type === 'dock';
+  const isDoor = o.type === 'door';
   const m2 = hasSize ? (+o.w||0) * (+o.h||0) : 0;
   const py = areaPyeong(m2);
   const heightM = objectHeightM(o);
@@ -19586,6 +19638,17 @@ function renderNonRackEditor(c, o) {
       ${isRoom ? inp('테두리색', 'borderColor', o.borderColor||'#94a3b8', 'type="color"') : ''}
       ${isDock ? inp('도크 번호', 'dockNumber', o.dockNumber||1, 'type="number" min="1" step="1"') : ''}
       ${isDock ? inp('도크 종류', 'dockKind', o.dockKind||'입출고', 'type="text" placeholder="입고/출고/입출고"') : ''}
+      ${isDoor ? inp('회전 각도 (°)', 'rotation', o.rotation||0, 'type="number" min="0" max="359" step="5" title="0=수평 · 90=수직 · 벽 방향에 맞춤"') : ''}
+      ${isDoor ? `
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <label style="font-size:10px; color:var(--c-ink-3); font-weight:600;">스윙 방향</label>
+          <select onchange="updateFloorplanObj('${c.id}','${o.id}','swingSide',this.value)"
+            style="padding:6px 8px; border:1px solid var(--c-border); border-radius:5px; font-size:12px; background:var(--c-surface); color:var(--c-ink); font-weight:500;">
+            <option value="left"  ${(o.swingSide||'left')==='left' ?'selected':''}>← 왼쪽 힌지</option>
+            <option value="right" ${o.swingSide==='right'?'selected':''}>오른쪽 힌지 →</option>
+          </select>
+        </div>` : ''}
+      ${isDoor ? inp('열림 각도 (°)', 'swingAngle', o.swingAngle ?? 90, 'type="number" min="0" max="90" step="5" title="0=닫힘 · 90=완전 열림"') : ''}
     </div>
     ${hasSize ? `
       <div style="margin-top:8px; padding:8px 12px; background:linear-gradient(90deg, #ecfeff, #f0fdf4); border:1px solid #a7f3d0; border-radius:6px; display:flex; gap:16px; align-items:center; font-size:12px; flex-wrap:wrap;">
@@ -21106,6 +21169,14 @@ window.handleFloorplanClick = async function(evt, centerId) {
   if (floorplanTool === 'stairs')   { newObj.w = 3; newObj.h = 4; newObj.label = '계단'; }
   if (floorplanTool === 'elevator') { newObj.w = 2.5; newObj.h = 2.5; newObj.label = 'EV'; }
   if (floorplanTool === 'column')   { newObj.label = ''; }
+  // 출입문: 폭 1.2m · 벽 두께 0.2m · 좌측 힌지 90도 열림
+  if (floorplanTool === 'door') {
+    newObj.w = 1.2; newObj.h = 0.2;
+    newObj.rotation = 0;
+    newObj.swingSide = 'left';
+    newObj.swingAngle = 90;
+    newObj.label = '';
+  }
   if (floorplanTool === 'dock') {
     newObj.w = 3; newObj.h = 2; newObj.heightM = 3.5;
     // 자동 번호 부여 (다른 도크의 최대 번호 + 1)
@@ -21676,6 +21747,24 @@ window.startFloorplanDrag = function(evt, objId) {
   window.addEventListener('mousemove', onFloorplanDragMove);
   window.addEventListener('mouseup', onFloorplanDragEnd, { once: true });
 };
+// 시설 오브젝트 판정 — 도크는 도면 경계 밖(외벽)에 붙어야 하므로 제외
+//   이동 제한(겹침/도면밖) 대상: 실·엘리베이터·계단·출입문·기둥·CCTV·소화기·스프링클러·비상구
+function _isConstrainedFacility(type) {
+  return ['room','elevator','stairs','door','column','cctv','fireExt','sprinkler','exit'].includes(type);
+}
+// 시설의 실효 footprint (점 오브젝트는 근사 사각형)
+function _facilityFootprint(o) {
+  const t = o.type;
+  if (t === 'cctv' || t === 'fireExt' || t === 'sprinkler' || t === 'column') {
+    // 점 오브젝트: 지름 ~0.6m 원 근사 → 사각형 폭 0.6m
+    return { w: 0.6, h: 0.6, offX: -0.3, offY: -0.3 };
+  }
+  if (t === 'exit') {
+    return { w: 1.5, h: 1.0, offX: -0.75, offY: -0.5 };
+  }
+  // room/elevator/stairs/door 은 w/h 그대로 · offset 0
+  return { w: +o.w||0, h: +o.h||0, offX: 0, offY: 0 };
+}
 function onFloorplanDragMove(evt) {
   if (!floorplanDragState) return;
   const c = getActiveCenter();
@@ -21683,33 +21772,50 @@ function onFloorplanDragMove(evt) {
   const zoom = (typeof floorplanZoom === 'number' && floorplanZoom > 0) ? floorplanZoom : 1;
   const rawDx = (evt.clientX - floorplanDragState.startX) / (floorplanDragState.scale * zoom);
   const rawDy = (evt.clientY - floorplanDragState.startY) / (floorplanDragState.scale * zoom);
-  // 그룹 내 모든 오브젝트가 도면 안에 들어가는지 클램프 계산
-  //   → 각 오브젝트의 origX + rawDx 를 0..maxX 로 클램프한 실제 dx 를 찾아서 그룹 전체에 균일 적용
   let dx = Math.round(rawDx * 2) / 2;
   let dy = Math.round(rawDy * 2) / 2;
-  // 그룹 이동 시 도면 밖으로 나가지 않도록 dx/dy 클램프
+  // 🔥 그룹 이동 시 도면 밖으로 나가지 않도록 dx/dy 클램프
+  //   · 랙: 좌상단 (0,0) 에서 (W-w, H-h) 안
+  //   · 시설(도크 제외): footprint 기준으로 도면 안
+  //   · 도크: 예외 (외벽 부착 허용, 클램프 X)
   floorplanDragState.group.forEach(g => {
     const obj = c.floorplan.objects.find(x => x.id === g.id);
     if (!obj) return;
+    if (obj.type === 'dock') return; // 도크는 클램프 제외
     const rack = isRackType(obj.type);
-    const w = rack ? (+obj.w || 0) : 0;
-    const h = rack ? (+obj.h || 0) : 0;
-    const maxX = Math.max(0, c.floorplan.width  - w);
-    const maxY = Math.max(0, c.floorplan.height - h);
-    // 클램프: g.origX + dx 가 [0, maxX] 안에 들어오도록 dx 조정
-    if (g.origX + dx < 0) dx = -g.origX;
+    let w = 0, h = 0, offX = 0, offY = 0;
+    if (rack) { w = +obj.w||0; h = +obj.h||0; }
+    else if (_isConstrainedFacility(obj.type)) {
+      const fp = _facilityFootprint(obj);
+      w = fp.w; h = fp.h; offX = fp.offX; offY = fp.offY;
+    } else return;
+    const maxX = Math.max(0, c.floorplan.width  - w - offX);
+    const maxY = Math.max(0, c.floorplan.height - h - offY);
+    const minX = -offX;
+    const minY = -offY;
+    if (g.origX + dx < minX) dx = minX - g.origX;
     if (g.origX + dx > maxX) dx = maxX - g.origX;
-    if (g.origY + dy < 0) dy = -g.origY;
+    if (g.origY + dy < minY) dy = minY - g.origY;
     if (g.origY + dy > maxY) dy = maxY - g.origY;
   });
-  // 그룹 겹침 검사: 그룹 밖 오브젝트와 겹치면 이번 프레임 스킵 (마지막 유효 좌표 유지)
+  // 🔥 겹침 검사: 그룹 밖 랙/시설과 겹치면 이번 프레임 스킵
+  //   · 랙끼리는 rackOverlapsAnyExcept 로 검사 (기존)
+  //   · 시설(도크 제외)은 다른 랙/시설과 겹침 금지
+  //   · 도크는 겹침 검사 제외
   const groupIdSet = new Set(floorplanDragState.group.map(g => g.id));
   for (const g of floorplanDragState.group) {
     const obj = c.floorplan.objects.find(x => x.id === g.id);
-    if (!obj || !isRackType(obj.type)) continue;
-    const candidate = { x: g.origX + dx, y: g.origY + dy, w: +obj.w||0, h: +obj.h||0 };
-    // 그룹 내 다른 오브젝트는 무시 (자체 겹침 허용)
-    if (rackOverlapsAnyExcept(c, candidate, groupIdSet)) return;
+    if (!obj) continue;
+    if (obj.type === 'dock') continue;
+    let candidate;
+    if (isRackType(obj.type)) {
+      candidate = { x: g.origX + dx, y: g.origY + dy, w: +obj.w||0, h: +obj.h||0 };
+      if (rackOverlapsAnyExcept(c, candidate, groupIdSet)) return;
+    } else if (_isConstrainedFacility(obj.type)) {
+      const fp = _facilityFootprint(obj);
+      candidate = { x: g.origX + dx + fp.offX, y: g.origY + dy + fp.offY, w: fp.w, h: fp.h };
+      if (anyObjOverlapsExcept(c, candidate, groupIdSet)) return;
+    }
   }
   // 이동 적용
   floorplanDragState.group.forEach(g => {
@@ -21720,13 +21826,32 @@ function onFloorplanDragMove(evt) {
   });
   renderCenterSubTabContent();
 }
-// 그룹 이동용 겹침 검사 — 지정된 exceptIds 제외
+// 그룹 이동용 겹침 검사 — 지정된 exceptIds 제외 (랙끼리만)
 function rackOverlapsAnyExcept(c, candidate, exceptIds) {
   const objs = c.floorplan?.objects || [];
   for (const other of objs) {
     if (exceptIds.has(other.id)) continue;
     if (!isRackType(other.type)) continue;
     const ox = +other.x||0, oy = +other.y||0, ow = +other.w||0, oh = +other.h||0;
+    if (candidate.x < ox + ow && candidate.x + candidate.w > ox &&
+        candidate.y < oy + oh && candidate.y + candidate.h > oy) return true;
+  }
+  return false;
+}
+// 🔥 시설(도크 제외) 겹침 검사 — 다른 랙 + 다른 시설(도크·미제한 오브젝트 제외) 과 겹치면 true
+function anyObjOverlapsExcept(c, candidate, exceptIds) {
+  const objs = c.floorplan?.objects || [];
+  for (const other of objs) {
+    if (exceptIds.has(other.id)) continue;
+    if (other.type === 'dock') continue; // 도크는 자유롭게 아무데나 배치 가능
+    // 랙 또는 제한 대상 시설과 겹침 검사
+    let ox, oy, ow, oh;
+    if (isRackType(other.type)) {
+      ox = +other.x||0; oy = +other.y||0; ow = +other.w||0; oh = +other.h||0;
+    } else if (_isConstrainedFacility(other.type)) {
+      const fp = _facilityFootprint(other);
+      ox = (+other.x||0) + fp.offX; oy = (+other.y||0) + fp.offY; ow = fp.w; oh = fp.h;
+    } else continue;
     if (candidate.x < ox + ow && candidate.x + candidate.w > ox &&
         candidate.y < oy + oh && candidate.y + candidate.h > oy) return true;
   }
