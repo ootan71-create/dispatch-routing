@@ -16951,6 +16951,9 @@ window.MANUAL_DATA = {
             { id: 'fp-tool-emergency-door', title: '🚨 비상문 도구 (신규)', desc: '구조 팔레트에 <b>🚨 비상문</b> 추가. 출입문과 동일한 문틀·스윙 표현에 <b>초록 문짝</b>과 <b>초록 EXIT 발광 사인</b>이 문 위에 얹혀 있어 실제 도면과 동일하게 표현. 회전·스윙 방향·열림 각도 모두 조절 가능.' },
             { id: 'fp-tool-workshop', title: '🔨 작업장 도구 (신규 · 도면 최상위)', desc: '구조 팔레트에 <b>🔨 작업장</b> 추가. 실/구역처럼 벽 있는 룸이 아니라 <b>바닥에 노랑-주황 대각 스트라이프 + 사용자 명칭</b>만 표시. 매자닌 하위 작업장과 동일한 스타일. 3D 뷰어에서도 바닥 텍스처 + 명칭만 부유 표시.' },
             { id: 'fp-sec-toggle', title: '🛡️ 소방·보안 표시/숨김 토글 (신규)', desc: '툴바에 <b>🛡️ 소방·보안 표시/숨김</b> 버튼 추가. CCTV·무인경비·소화기·스프링클러·비상구는 실무에서 자주 참조하지 않으므로 <b>기본 숨김</b>. 필요할 때만 한 번 클릭으로 표시 전환. 2D 도면과 3D 뷰어 모두에 즉시 반영.' },
+            { id: 'fp-ev-doorside', title: '🛗 EV 출입구 방향 지정 (신규)', desc: '화물 엘리베이터 편집기에 <b>출입구 방향</b> 필드(도면 아래/위/오른쪽/왼쪽) 추가. 2D 도면에는 문 위치가 굵은 남색 선 + 방향 화살표로 표시되고, 3D 뷰어에서는 해당 방향 면에 문·슬릿·지시등·라벨이 모두 회전 반영되어 배치됩니다.' },
+            { id: 'fp-v3d-back', title: '🔄 3D 뷰어에서 2D/3D 도면 관리로 복귀 (신규)', desc: '3D 뷰어(🔥) 좌측 상단에 <b>📐 2D 평면 · 🧊 3D 입체 · 🔥 3D 뷰어</b> 세그먼트 버튼 추가. 3D 뷰어에서 곧바로 2D 도면 관리 화면 또는 3D 입체 화면으로 이동 가능. 현재 화면은 강조 표시됨.' },
+            { id: 'fp-esc-tool', title: '⎋ ESC 로 선택 도구 복귀 (신규)', desc: '어떤 도구(파렛트랙·비상문·CCTV 등)를 활성화한 상태에서 <b>ESC</b> 를 누르면 즉시 <b>👆 선택 도구</b> 로 돌아옵니다. 실수로 눌러도 아무 문제 없이 즉시 복귀. 배치 대기 상태에서 도면 클릭 오배치 방지에 유용.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -17924,24 +17927,24 @@ function renderFloorplanObject(o, PAD, SCALE) {
     </g>`;
   }
   if (o.type === 'emergencyDoor') {
-    // 🔥 비상문: 초록 문 + 상단 EXIT 비상등 (사람+화살표 픽토그램 스타일)
-    //   출입문과 동일한 회전/스윙 필드 사용
+    // 🔥 비상문: 초록 문 + 상단 EXIT 발광 비상등
     const SCALE_ED = 8;
-    const edW = (+o.w || 1.2) * SCALE_ED;
-    const edH = (+o.h || 0.2) * SCALE_ED;
+    // 화면 가독성 확보를 위해 최소 픽셀 크기 보장
+    const edW = Math.max(20, (+o.w || 1.5) * SCALE_ED);
+    const edH = Math.max(8, (+o.h || 0.5) * SCALE_ED);
     const edRot = +o.rotation || 0;
     const edSwingSide = o.swingSide === 'right' ? 'right' : 'left';
     const edSwingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
     // 개구부 (밝은 초록 배경)
-    const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="1.5"${strokeSelected}/>`;
-    // 문 스톱
-    const edStops = `<line x1="0" y1="${edH/2}" x2="-4" y2="${edH/2}" stroke="#166534" stroke-width="1.8"/>
-                     <line x1="${edW}" y1="${edH/2}" x2="${edW+4}" y2="${edH/2}" stroke="#166534" stroke-width="1.8"/>`;
+    const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="2"${strokeSelected}/>`;
+    // 문 스톱 (양 옆 얇은 벽 잔여)
+    const edStops = `<line x1="0" y1="${edH/2}" x2="-5" y2="${edH/2}" stroke="#166534" stroke-width="2.2"/>
+                     <line x1="${edW}" y1="${edH/2}" x2="${edW+5}" y2="${edH/2}" stroke="#166534" stroke-width="2.2"/>`;
     // 문짝 (초록)
     const edHingeX = edSwingSide === 'right' ? edW : 0;
     const edDoorRot = edSwingSide === 'right' ? edSwingAngle : -edSwingAngle;
     const edPanel = `<g transform="translate(${edHingeX} ${edH/2}) rotate(${edDoorRot})">
-        <rect x="${edSwingSide === 'right' ? -edW : 0}" y="-1.5" width="${edW}" height="3" fill="#16a34a" stroke="#166534" stroke-width="1"/>
+        <rect x="${edSwingSide === 'right' ? -edW : 0}" y="-2" width="${edW}" height="4" fill="#16a34a" stroke="#166534" stroke-width="1.2"/>
       </g>`;
     // 스윙 호
     let edArc = '';
@@ -17950,27 +17953,26 @@ function renderFloorplanObject(o, PAD, SCALE) {
       if (edSwingSide === 'right') {
         const ex = edHingeX - edW * Math.cos(rad);
         const ey = edH/2 - edW * Math.sin(rad);
-        edArc = `<path d="M ${edHingeX - edW} ${edH/2} A ${edW} ${edW} 0 0 1 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.7"/>`;
+        edArc = `<path d="M ${edHingeX - edW} ${edH/2} A ${edW} ${edW} 0 0 1 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
       } else {
         const ex = edHingeX + edW * Math.cos(rad);
         const ey = edH/2 - edW * Math.sin(rad);
-        edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.7"/>`;
+        edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
       }
     }
-    // 🔥 비상등 (개구부 위에 초록 EXIT 사인) — 발광 효과 (여러 겹 그라디언트)
-    const signW = Math.max(edW * 0.55, 14);
-    const signH = 8;
+    // 🔥 EXIT 발광 사인 (개구부 위)
+    const signW = Math.max(edW * 0.75, 26);
+    const signH = 14;
     const signX = (edW - signW) / 2;
-    const signY = -signH - 2;
+    const signY = -signH - 4;
     const emergencySign = `<g>
-      <!-- 발광 후광 -->
-      <rect x="${signX - 3}" y="${signY - 3}" width="${signW + 6}" height="${signH + 6}" rx="2" fill="#22c55e" opacity="0.25"/>
+      <!-- 발광 후광 (넓은 옅은 초록) -->
+      <rect x="${signX - 4}" y="${signY - 4}" width="${signW + 8}" height="${signH + 8}" rx="3" fill="#22c55e" opacity="0.28"/>
+      <rect x="${signX - 2}" y="${signY - 2}" width="${signW + 4}" height="${signH + 4}" rx="2.5" fill="#22c55e" opacity="0.35"/>
       <!-- 사인 몸체 -->
-      <rect x="${signX}" y="${signY}" width="${signW}" height="${signH}" rx="1.5" fill="#16a34a" stroke="#166534" stroke-width="0.6"/>
+      <rect x="${signX}" y="${signY}" width="${signW}" height="${signH}" rx="2" fill="#16a34a" stroke="#166534" stroke-width="0.8"/>
       <!-- EXIT 텍스트 -->
-      <text x="${signX + signW/2}" y="${signY + signH/2 + 2.5}" text-anchor="middle" font-size="6" font-weight="700" fill="#fff" font-family="Arial, sans-serif" letter-spacing="0.5">EXIT</text>
-      <!-- 좌우 화살표 (내부 라인) -->
-      <line x1="${signX + 2}" y1="${signY + signH/2}" x2="${signX + signW - 2}" y2="${signY + signH/2}" stroke="#fff" stroke-width="0.3" opacity="0.35"/>
+      <text x="${signX + signW/2}" y="${signY + signH/2 + 4}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Arial, sans-serif" letter-spacing="1">EXIT</text>
     </g>`;
     const cxED = x, cyED = y;
     return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
@@ -18081,13 +18083,33 @@ function renderFloorplanObject(o, PAD, SCALE) {
   }
   // ===== 신규: 엘리베이터 =====
   if (o.type === 'elevator') {
+    // 🔥 화물 엘리베이터 — 문 방향(doorSide) 을 SVG 로도 표시
     const SCALE_ = 8;
     const w = (o.w||2.5) * SCALE_;
     const h = (o.h||2.5) * SCALE_;
+    const doorSide = o.doorSide || 'south';
+    // 문 위치: 각 변의 안쪽으로 짧은 굵은 선 + 스윙 방향 화살표
+    let doorLine = '', arrow = '';
+    const doorThick = 3;
+    if (doorSide === 'south') {
+      doorLine = `<rect x="${x + w*0.2}" y="${y + h - doorThick}" width="${w*0.6}" height="${doorThick}" fill="#4338ca"/>`;
+      arrow = `<path d="M ${x+w/2-4} ${y+h+3} L ${x+w/2+4} ${y+h+3} L ${x+w/2} ${y+h+10} Z" fill="#4338ca"/>`;
+    } else if (doorSide === 'north') {
+      doorLine = `<rect x="${x + w*0.2}" y="${y}" width="${w*0.6}" height="${doorThick}" fill="#4338ca"/>`;
+      arrow = `<path d="M ${x+w/2-4} ${y-3} L ${x+w/2+4} ${y-3} L ${x+w/2} ${y-10} Z" fill="#4338ca"/>`;
+    } else if (doorSide === 'east') {
+      doorLine = `<rect x="${x + w - doorThick}" y="${y + h*0.2}" width="${doorThick}" height="${h*0.6}" fill="#4338ca"/>`;
+      arrow = `<path d="M ${x+w+3} ${y+h/2-4} L ${x+w+3} ${y+h/2+4} L ${x+w+10} ${y+h/2} Z" fill="#4338ca"/>`;
+    } else { // west
+      doorLine = `<rect x="${x}" y="${y + h*0.2}" width="${doorThick}" height="${h*0.6}" fill="#4338ca"/>`;
+      arrow = `<path d="M ${x-3} ${y+h/2-4} L ${x-3} ${y+h/2+4} L ${x-10} ${y+h/2} Z" fill="#4338ca"/>`;
+    }
     return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
       onmousedown="startFloorplanDrag(event, '${o.id}')"
       onclick="event.stopPropagation(); selectFloorplanObj('${o.id}', event)">
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="#e0e7ff" stroke="#4338ca" stroke-width="2"${strokeSelected}/>
+      ${doorLine}
+      ${arrow}
       <text x="${x+w/2}" y="${y+h/2-2}" text-anchor="middle" font-size="14">🛗</text>
       <text x="${x+w/2}" y="${y+h/2+12}" text-anchor="middle" font-size="9" fill="#3730a3" font-weight="700" pointer-events="none">${o.label||'EV'}</text>
     </g>`;
@@ -19727,6 +19749,7 @@ function renderNonRackEditor(c, o) {
   const isCctv = o.type === 'cctv';
   const isDock = o.type === 'dock';
   const isDoor = o.type === 'door' || o.type === 'emergencyDoor';
+  const isElevator = o.type === 'elevator';
   const m2 = hasSize ? (+o.w||0) * (+o.h||0) : 0;
   const py = areaPyeong(m2);
   const heightM = objectHeightM(o);
@@ -19762,6 +19785,18 @@ function renderNonRackEditor(c, o) {
           </select>
         </div>` : ''}
       ${isDoor ? inp('열림 각도 (°)', 'swingAngle', o.swingAngle ?? 90, 'type="number" min="0" max="90" step="5" title="0=닫힘 · 90=완전 열림"') : ''}
+      ${isElevator ? `
+        <div style="display:flex; flex-direction:column; gap:2px;">
+          <label style="font-size:10px; color:var(--c-ink-3); font-weight:600;">🛗 출입구 방향</label>
+          <select onchange="updateFloorplanObj('${c.id}','${o.id}','doorSide',this.value)"
+            title="엘리베이터 문이 향할 방향 (3D 뷰어에 반영)"
+            style="padding:6px 8px; border:1px solid var(--c-border); border-radius:5px; font-size:12px; background:var(--c-surface); color:var(--c-ink); font-weight:500;">
+            <option value="south" ${(o.doorSide||'south')==='south' ?'selected':''}>⬇ 도면 아래쪽 (Y+)</option>
+            <option value="north" ${o.doorSide==='north' ?'selected':''}>⬆ 도면 위쪽 (Y-)</option>
+            <option value="east"  ${o.doorSide==='east'  ?'selected':''}>➡ 도면 오른쪽 (X+)</option>
+            <option value="west"  ${o.doorSide==='west'  ?'selected':''}>⬅ 도면 왼쪽 (X-)</option>
+          </select>
+        </div>` : ''}
     </div>
     ${hasSize ? `
       <div style="margin-top:8px; padding:8px 12px; background:linear-gradient(90deg, #ecfeff, #f0fdf4); border:1px solid #a7f3d0; border-radius:6px; display:flex; gap:16px; align-items:center; font-size:12px; flex-wrap:wrap;">
@@ -19859,8 +19894,19 @@ function renderCenter3DViewer(c) {
       <!-- 3D 캔버스 컨테이너 -->
       <div id="v3d-canvas" style="width:100%; height:100%; position:relative;"></div>
 
-      <!-- 좌측 상단: 워크스루 모드 토글 + 사이드 패널 열기 버튼 -->
+      <!-- 좌측 상단: 뷰 전환 (2D/3D/뷰어) + 워크스루 + 패널 -->
       <div style="position:absolute; top:12px; left:12px; display:flex; flex-direction:column; gap:8px; z-index:100;">
+        <!-- 🔥 뷰 전환 세그먼트 (도면 관리로 복귀) -->
+        <div style="display:flex; background:rgba(15,18,32,0.94); backdrop-filter:blur(10px); border-radius:8px; overflow:hidden; border:1px solid #252943; box-shadow:0 4px 12px rgba(0,0,0,0.35);">
+          <button onclick="switchCenterSubTab('floorplan'); floorplan3D = false; setTimeout(() => renderCenterSubTabContent(), 30);"
+            title="2D 평면 도면 관리 화면으로 이동"
+            style="padding:8px 14px; background:transparent; color:#9ca3af; border:none; cursor:pointer; font-size:11px; font-weight:700;">📐 2D 평면</button>
+          <button onclick="switchCenterSubTab('floorplan'); floorplan3D = true; setTimeout(() => renderCenterSubTabContent(), 30);"
+            title="2D 도면 관리의 3D 입체 뷰로 이동"
+            style="padding:8px 14px; background:transparent; color:#9ca3af; border:none; border-left:1px solid #252943; cursor:pointer; font-size:11px; font-weight:700;">🧊 3D 입체</button>
+          <button title="현재 화면: 🔥 3D 히트맵 뷰어"
+            style="padding:8px 14px; background:linear-gradient(135deg,#dc2626,#f59e0b); color:white; border:none; border-left:1px solid #252943; cursor:default; font-size:11px; font-weight:700;">🔥 3D 뷰어</button>
+        </div>
         <button id="v3dWalkBtn" onclick="v3dToggleWalkMode()" title="1인칭 워크스루 모드 (WASD/화살표 이동 · 마우스 시선)"
           style="padding:10px 14px; background:linear-gradient(135deg,#059669,#10b981); color:#fff; border:none; border-radius:8px; cursor:pointer; font-size:12px; font-weight:700; box-shadow:0 4px 12px rgba(16,185,129,0.4);">🚶 1인칭 워크</button>
         <button id="v3dTogglePanelsBtn" onclick="v3dTogglePanels()" title="사이드 패널 열기/닫기"
@@ -20608,39 +20654,54 @@ function v3dBuildScene(c) {
       lbl.position.set(p.x, 0.05, p.z - dh*0.15); // 셔터 앞쪽에
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'elevator') {
-      // 🔥 화물 엘리베이터 — 샤프트 + 앞면 문 (수직 슬릿) + 상단 지시등 + 발광 라벨
-      //   📌 문은 도면상 아래쪽(z+ 방향, 창고 안쪽)을 향함 — 사용자 요청
+      // 🔥 화물 엘리베이터 — 샤프트 + 방향 선택 가능한 앞면 문 + 상단 지시등 + 라벨
+      //   doorSide: 'north'(z-) | 'south'(z+, 기본) | 'east'(x+) | 'west'(x-)
       const w = o.w || 2.5, h = o.h || 2.5;
       const p = t(o.x + w/2, o.y + h/2);
       const shaftH = 4.5;
-      // 샤프트 몸체 (짙은 회색)
+      const doorSide = o.doorSide || 'south';
+      // 샤프트 몸체
       const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.5 });
       const shaft = new THREE.Mesh(new THREE.BoxGeometry(w, shaftH, h), shaftMat);
       shaft.position.set(p.x, shaftH/2, p.z);
       shaft.castShadow = true;
       _v3d.buildingGroup.add(shaft);
-      // 앞면 문 (밝은 은색) — z+ 방향 (도면 아래쪽) 면에 부착
+      // 방향별 문 위치·회전·문폭 계산
+      //   각 면 중앙에 배치. 문의 폭은 그 면의 실제 너비의 70% 사용.
+      let doorPosX, doorPosZ, doorRotY, faceLenAlong;
+      if (doorSide === 'north')      { doorPosX = p.x; doorPosZ = p.z - h/2 - 0.03; doorRotY = 0;         faceLenAlong = w; }
+      else if (doorSide === 'east')  { doorPosX = p.x + w/2 + 0.03; doorPosZ = p.z; doorRotY = Math.PI/2; faceLenAlong = h; }
+      else if (doorSide === 'west')  { doorPosX = p.x - w/2 - 0.03; doorPosZ = p.z; doorRotY = -Math.PI/2; faceLenAlong = h; }
+      else /* south */               { doorPosX = p.x; doorPosZ = p.z + h/2 + 0.03; doorRotY = Math.PI;   faceLenAlong = w; }
+      const doorW = faceLenAlong * 0.7, doorH_ = shaftH * 0.75;
+      // 문짝
       const doorMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.35, metalness: 0.8 });
-      const doorW = w * 0.7, doorH = shaftH * 0.75;
-      const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.05), doorMat);
-      door.position.set(p.x, doorH/2 + 0.1, p.z + h/2 + 0.03);
+      const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH_, 0.05), doorMat);
+      door.position.set(doorPosX, doorH_/2 + 0.1, doorPosZ);
+      door.rotation.y = doorRotY;
       _v3d.buildingGroup.add(door);
-      // 중앙 슬릿 (문 갈림)
+      // 중앙 슬릿
       const slitMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.05, doorH, 0.08), slitMat);
-      slit.position.set(p.x, doorH/2 + 0.1, p.z + h/2 + 0.06);
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.05, doorH_, 0.08), slitMat);
+      // 슬릿을 문의 정면(문 바깥)으로 약간 밀기
+      const slitOffset = 0.03;
+      const dxSlit = -Math.sin(doorRotY) * slitOffset;
+      const dzSlit =  Math.cos(doorRotY) * slitOffset;
+      slit.position.set(doorPosX + dxSlit, doorH_/2 + 0.1, doorPosZ + dzSlit);
+      slit.rotation.y = doorRotY;
       _v3d.buildingGroup.add(slit);
       // 상단 지시등 (녹색 발광)
       const indMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.8 });
       const indicator = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.1), indMat);
-      indicator.position.set(p.x, shaftH - 0.35, p.z + h/2 + 0.06);
+      indicator.position.set(doorPosX + dxSlit, shaftH - 0.35, doorPosZ + dzSlit);
+      indicator.rotation.y = doorRotY;
       _v3d.buildingGroup.add(indicator);
-      // 라벨 (문 위, 크게, 노랑 배경) — 문과 같은 z+ 면에
+      // 라벨 (문 위)
       const evLabel = o.label || '화물 EV';
       const tex = _v3dTextTex(evLabel, '#fef3c7', '#b45309', 384, 96);
-      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.9, 2.5), 0.6), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-      lbl.position.set(p.x, doorH + 0.55, p.z + h/2 + 0.08);
-      lbl.rotation.y = Math.PI; // z+ 면을 바라보므로 라벨을 180도 뒤집어 정면 노출
+      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(faceLenAlong*0.9, 2.5), 0.6), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      lbl.position.set(doorPosX + dxSlit*1.7, doorH_ + 0.55, doorPosZ + dzSlit*1.7);
+      lbl.rotation.y = doorRotY;
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'workshop') {
       // 🔥 도면 최상위 작업장 — 매자닌 하위 작업장과 같은 스타일: 바닥 스트라이프 + 라벨만
@@ -21374,7 +21435,7 @@ window.handleFloorplanClick = async function(evt, centerId) {
   if (floorplanTool === 'cctv') newObj.direction = 45;
   if (floorplanTool === 'room')     { newObj.w = 6; newObj.h = 4; newObj.label = '실'; }
   if (floorplanTool === 'stairs')   { newObj.w = 3; newObj.h = 4; newObj.label = '계단'; }
-  if (floorplanTool === 'elevator') { newObj.w = 2.5; newObj.h = 2.5; newObj.label = 'EV'; }
+  if (floorplanTool === 'elevator') { newObj.w = 2.5; newObj.h = 2.5; newObj.label = 'EV'; newObj.doorSide = 'south'; }
   if (floorplanTool === 'column')   { newObj.label = ''; }
   // 출입문: 폭 1.2m · 벽 두께 0.2m · 좌측 힌지 90도 열림
   if (floorplanTool === 'door') {
@@ -21384,9 +21445,9 @@ window.handleFloorplanClick = async function(evt, centerId) {
     newObj.swingAngle = 90;
     newObj.label = '';
   }
-  // 비상문: 출입문과 동일한 기본값
+  // 비상문: 폭 1.5m · 벽 두께 0.5m (화면 가독성) · 좌측 힌지 90도 열림
   if (floorplanTool === 'emergencyDoor') {
-    newObj.w = 1.2; newObj.h = 0.2;
+    newObj.w = 1.5; newObj.h = 0.5;
     newObj.rotation = 0;
     newObj.swingSide = 'left';
     newObj.swingAngle = 90;
@@ -22134,9 +22195,14 @@ function wireFloorplanEditor(c) {
         selectAllFloorplan();
         return;
       }
-      // ESC → 줄자 진행 취소 or 전체보기 해제 or 선택 해제
+      // ESC → 줄자 진행 취소 · 활성 도구 → 선택 도구로 복귀 · 전체보기 해제 · 선택 해제
       if (e.key === 'Escape') {
         if (measureState) { cancelMeasureInProgress(); return; }
+        // 🔥 활성 도구가 '선택'이 아니면 우선 선택 도구로 복귀
+        if (floorplanTool && floorplanTool !== 'select') {
+          selectFloorplanTool('select');
+          return;
+        }
         if (floorplanFullscreen) { floorplanFullscreen = false; renderCenterSubTabContent(); }
         else if (floorplanSelectedId) { floorplanSelectedId = null; renderCenterSubTabContent(); }
         return;
