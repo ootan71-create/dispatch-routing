@@ -16958,6 +16958,10 @@ window.MANUAL_DATA = {
             { id: 'v3d-facility-real', title: '🏭 3D 뷰어 시설 실사화 (개선)', desc: '<ul><li><b>매자닌 데크</b>: 초록 반투명 판 → <b>스틸 그레이 데크</b>(두께 있는 박스) + 하부 H형 지지 빔 + 4변 노랑 안전 <b>난간</b>(수직 포스트 + 2단 파이프) + 바닥→상층 관통 <b>지지 기둥</b> 격자.</li><li><b>콘크리트 기둥</b>: 단순 회색 박스 → <b>하부 받침대(footing)</b> + 좁혀지는 <b>테이퍼링</b> + 굵은 콘크리트 <b>몸통</b> + 역사다리꼴 <b>상단 지지 헤드</b>. 그림자·질감까지 실물감.</li><li><b>도크장</b>: 노랑-검정 스트라이프 바닥 + <b>노랑 도크 레벨러</b>(경사판) + <b>검정 도크 씰</b>(상부·좌우 프레임) + 셔터 위 <b>상부 캐노피 지붕</b>(브래킷 2개 지지). 실제 물류센터 도크 구조 반영.</li></ul>' },
             { id: 'v3d-walk-look-move', title: '🎯 워크스루 시선-이동 정확 반영 (수정)', desc: '1인칭 워크스루에서 W/↑ 이동이 <b>THREE.js 카메라의 실제 시선 벡터</b>를 사용해 계산됩니다. 마우스로 위/아래로 시선을 돌리면 그 방향 그대로 이동. 계산은 카메라 회전 갱신 → getWorldDirection() → 이동 벡터 순으로 처리되어 어떤 각도 조합에서도 오차 없이 시선과 이동 방향이 일치합니다.' },
             { id: 'v3d-ui-refresh', title: '🎨 3D 뷰어 사이드 패널 리디자인 (개선)', desc: '우측 패널을 300px → 340px 로 넓혀 헤더 문구가 <b>줄바꿈되지 않도록</b> nowrap 적용. 각 카드에 <b>상단 색상 액센트 바</b>(빨강/초록/노랑/오렌지) + 그라디언트 배경 + 볼드 헤더 + 넓은 shadow 로 카드 위계 명확화. KPI/ABC/모드 탭 모두 <b>화이트-스페이스 넉넉히 확보 + 폰트 웨이트 800/900</b> 로 가독성 강화. 스크롤바도 얇게 정리.' },
+            { id: 'v3d-loc-popup', title: '📌 로케이션 클릭 팝업 강화 (신규)', desc: '3D 뷰어의 파렛트 박스를 클릭하면 상세 팝업에 <b>🏷️ 랙 라벨 · 단수 · 파렛트 순번 · F/R</b> 요약 표시. 그리고 별도 <b>📦 재고 정보 카드</b>(품목·수량 EA·적재 CBM)가 강조되어 나옴. 아래 섹션에는 로케이션 코드(모노스페이스 배지)·등급 배지·피킹·출고·도크 거리·골든존 점수까지 한 화면에서 확인.' },
+            { id: 'v3d-loc-search', title: '🎯 로케이션 검색·이동·하이라이트 (신규)', desc: '사이드 패널 상단 <b>🔍 로케이션 찾기</b> 카드에 코드 입력 → 🎯 이동 (또는 Enter). 매칭된 파렛트로 <b>카메라 자동 포커스</b> + 노란 발광 하이라이트 큐브가 5초간 표시됩니다. 정확 일치 → 부분 일치 순으로 매칭. 예: <code>A31-0102-F</code> 입력 시 A31 랙의 1단 2번 파렛트 앞면으로 즉시 이동.' },
+            { id: 'fp-workshop-resize', title: '🔨 작업장 리사이즈 (개선)', desc: '작업장 선택 → 4모서리 <b>주황 리사이즈 핸들</b> 표시 → 마우스 드래그로 가로/세로 조절 (0.5m 스냅). 편집기의 숫자 입력 없이 즉시 원하는 크기로.' },
+            { id: 'fp-door-hitbox', title: '🚪 문(도어)의 클릭 히트박스 정리 (개선)', desc: '출입문과 비상문의 <b>스윙 호(원호), 문짝, EXIT 사인</b> 등 시각용 요소에 <code>pointer-events="none"</code> 적용. 이제 문 옆에 배치된 <b>작업장·랙 등을 정확히 클릭</b>할 수 있습니다. 문 자체는 개구부(직사각형)만 클릭에 반응.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -17778,6 +17782,7 @@ function renderSelectionHandles(fp, PAD, SCALE) {
     // 기본 크기 (오브젝트 종류별)
     const defaults = {
       dock:[3,2], room:[6,4], elevator:[2.5,2.5], stairs:[3,4],
+      door:[1.2,0.2], emergencyDoor:[1.5,0.5], workshop:[4,3],
     };
     const [defW, defH] = defaults[o.type] || [2, 2];
     const x = PAD + (o.x||0) * SCALE;
@@ -17885,37 +17890,32 @@ function renderFloorplanObject(o, PAD, SCALE) {
     const rot = +o.rotation || 0;
     const swingSide = o.swingSide === 'right' ? 'right' : 'left';
     const swingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
-    // 벽 개구부: 얇은 밝은 회색 사각형 (양쪽 문 스톱 강조)
+    // 벽 개구부: 얇은 밝은 회색 사각형 (클릭 잡는 유일한 영역)
     const wallOpening = `<rect x="0" y="0" width="${dw}" height="${dh}" fill="#f8fafc" stroke="#0f172a" stroke-width="1.2"${strokeSelected}/>`;
-    // 좌우 문 스톱 (벽 잔여 부분 검은 얇은 선)
-    const stops = `<line x1="0" y1="${dh/2}" x2="-4" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8"/>
-                   <line x1="${dw}" y1="${dh/2}" x2="${dw+4}" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8"/>`;
-    // 문짝 (문틀에 붙어서 스윙 각도만큼 회전)
-    //   left: 왼쪽 문틀(0,dh/2)을 축으로 시계반대방향 -swingAngle
-    //   right: 오른쪽 문틀(dw,dh/2)을 축으로 시계방향 +swingAngle
+    // 좌우 문 스톱 (벽 잔여 부분) — 시각용, 클릭 이벤트 잡지 않음
+    const stops = `<line x1="0" y1="${dh/2}" x2="-4" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8" pointer-events="none"/>
+                   <line x1="${dw}" y1="${dh/2}" x2="${dw+4}" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8" pointer-events="none"/>`;
+    // 문짝 — 시각용
     const hingeX = swingSide === 'right' ? dw : 0;
     const hingeY = dh/2;
     const doorRot = swingSide === 'right' ? swingAngle : -swingAngle;
-    const doorPanel = `<g transform="translate(${hingeX} ${hingeY}) rotate(${doorRot})">
+    const doorPanel = `<g transform="translate(${hingeX} ${hingeY}) rotate(${doorRot})" pointer-events="none">
         <rect x="${swingSide === 'right' ? -dw : 0}" y="-1.5" width="${dw}" height="3" fill="#78716c" stroke="#44403c" stroke-width="1"/>
       </g>`;
-    // 스윙 호 (열림 궤적 원호)
-    // startAngle=0 (문틀 방향), endAngle=swingAngle 방향 · SVG 는 좌표계 상 y 아래로 증가하므로 반시계=음수
+    // 스윙 호 — 시각용 (인접 오브젝트 클릭 방해 방지)
     const arcR = dw;
     let arcPath = '';
     if (swingAngle > 0) {
       if (swingSide === 'right') {
-        // 오른쪽 문틀 축, 왼쪽으로 열림 → 시작점 = (hingeX - dw, hingeY) 방향
         const rad = swingAngle * Math.PI/180;
         const ex = hingeX - dw * Math.cos(rad);
         const ey = hingeY - dw * Math.sin(rad);
-        arcPath = `<path d="M ${hingeX - dw} ${hingeY} A ${arcR} ${arcR} 0 0 1 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65"/>`;
+        arcPath = `<path d="M ${hingeX - dw} ${hingeY} A ${arcR} ${arcR} 0 0 1 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65" pointer-events="none"/>`;
       } else {
-        // 왼쪽 문틀 축, 오른쪽으로 열림
         const rad = swingAngle * Math.PI/180;
         const ex = hingeX + dw * Math.cos(rad);
         const ey = hingeY - dw * Math.sin(rad);
-        arcPath = `<path d="M ${hingeX + dw} ${hingeY} A ${arcR} ${arcR} 0 0 0 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65"/>`;
+        arcPath = `<path d="M ${hingeX + dw} ${hingeY} A ${arcR} ${arcR} 0 0 0 ${ex} ${ey}" fill="none" stroke="#78716c" stroke-width="0.8" stroke-dasharray="3 2" opacity="0.65" pointer-events="none"/>`;
       }
     }
     // 회전 중심 = 개구부 중앙
@@ -17939,45 +17939,40 @@ function renderFloorplanObject(o, PAD, SCALE) {
     const edRot = +o.rotation || 0;
     const edSwingSide = o.swingSide === 'right' ? 'right' : 'left';
     const edSwingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
-    // 개구부 (밝은 초록 배경)
+    // 개구부 (밝은 초록 배경) — 클릭 잡는 유일한 영역
     const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="2"${strokeSelected}/>`;
-    // 문 스톱 (양 옆 얇은 벽 잔여)
-    const edStops = `<line x1="0" y1="${edH/2}" x2="-5" y2="${edH/2}" stroke="#166534" stroke-width="2.2"/>
-                     <line x1="${edW}" y1="${edH/2}" x2="${edW+5}" y2="${edH/2}" stroke="#166534" stroke-width="2.2"/>`;
-    // 문짝 (초록)
+    // 문 스톱 — 시각용, 이벤트 무시
+    const edStops = `<line x1="0" y1="${edH/2}" x2="-5" y2="${edH/2}" stroke="#166534" stroke-width="2.2" pointer-events="none"/>
+                     <line x1="${edW}" y1="${edH/2}" x2="${edW+5}" y2="${edH/2}" stroke="#166534" stroke-width="2.2" pointer-events="none"/>`;
+    // 문짝 (초록) — 시각용
     const edHingeX = edSwingSide === 'right' ? edW : 0;
     const edDoorRot = edSwingSide === 'right' ? edSwingAngle : -edSwingAngle;
-    const edPanel = `<g transform="translate(${edHingeX} ${edH/2}) rotate(${edDoorRot})">
+    const edPanel = `<g transform="translate(${edHingeX} ${edH/2}) rotate(${edDoorRot})" pointer-events="none">
         <rect x="${edSwingSide === 'right' ? -edW : 0}" y="-2" width="${edW}" height="4" fill="#16a34a" stroke="#166534" stroke-width="1.2"/>
       </g>`;
-    // 스윙 호
+    // 스윙 호 — 시각용
     let edArc = '';
     if (edSwingAngle > 0) {
       const rad = edSwingAngle * Math.PI/180;
       if (edSwingSide === 'right') {
         const ex = edHingeX - edW * Math.cos(rad);
         const ey = edH/2 - edW * Math.sin(rad);
-        edArc = `<path d="M ${edHingeX - edW} ${edH/2} A ${edW} ${edW} 0 0 1 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        edArc = `<path d="M ${edHingeX - edW} ${edH/2} A ${edW} ${edW} 0 0 1 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7" pointer-events="none"/>`;
       } else {
         const ex = edHingeX + edW * Math.cos(rad);
         const ey = edH/2 - edW * Math.sin(rad);
-        edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
+        edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7" pointer-events="none"/>`;
       }
     }
-    // 🔥 EXIT 발광 사인 — 그룹의 회전(edRot)을 카운터 회전으로 상쇄해서 항상 수평 유지
-    //   사인은 문 중앙 위쪽에 위치. 회전 후에도 사람이 읽을 수 있는 방향으로 표시.
+    // 🔥 EXIT 사인 — 시각용 (인접 오브젝트 클릭 방해 방지). 개구부 밖에 크게 그려지므로 pointer-events="none" 필수
     const signW = Math.max(edW * 0.75, 26);
     const signH = 14;
-    const signX = -signW / 2;   // 사인 로컬 원점 기준 중앙 배치
+    const signX = -signW / 2;
     const signY = -signH / 2;
-    // 회전 상쇄: 부모 그룹이 edRot 만큼 돌아가므로 여기서 -edRot 만큼 되돌림
-    const emergencySign = `<g transform="translate(${edW/2} ${-14}) rotate(${-edRot})">
-      <!-- 발광 후광 -->
+    const emergencySign = `<g transform="translate(${edW/2} ${-14}) rotate(${-edRot})" pointer-events="none">
       <rect x="${signX - 4}" y="${signY - 4}" width="${signW + 8}" height="${signH + 8}" rx="3" fill="#22c55e" opacity="0.28"/>
       <rect x="${signX - 2}" y="${signY - 2}" width="${signW + 4}" height="${signH + 4}" rx="2.5" fill="#22c55e" opacity="0.35"/>
-      <!-- 사인 몸체 -->
       <rect x="${signX}" y="${signY}" width="${signW}" height="${signH}" rx="2" fill="#16a34a" stroke="#166534" stroke-width="0.8"/>
-      <!-- EXIT 텍스트 -->
       <text x="0" y="${signY + signH/2 + 4}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Arial, sans-serif" letter-spacing="1">EXIT</text>
     </g>`;
     const cxED = x, cyED = y;
@@ -20029,10 +20024,42 @@ function renderCenter3DViewer(c) {
         <div id="v3dTopList"></div>
       </div>
 
-      <!-- 선택 상세 -->
+      <!-- 🔥 로케이션 검색 카드 -->
+      <div class="v3d-panel v3d-search" style="padding:14px 16px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; border-top:2px solid #06b6d4; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:9px;">
+          <span style="font-size:15px;">🔍</span>
+          <span style="font-size:13px; color:#22d3ee; font-weight:800; letter-spacing:-0.3px;">로케이션 찾기</span>
+        </div>
+        <div style="display:flex; gap:5px; margin-bottom:6px;">
+          <input type="text" id="v3dLocateInput" placeholder="예: A31-0102-F"
+            onkeypress="if(event.key==='Enter'){ v3dLocateAndHighlight(this.value); }"
+            style="flex:1; min-width:0; padding:8px 10px; background:rgba(15,18,32,0.7); color:#f8fafc; border:1px solid #3f4463; border-radius:6px; font-size:11.5px; font-family:monospace; letter-spacing:0.3px;">
+          <button onclick="v3dLocateAndHighlight(document.getElementById('v3dLocateInput').value)"
+            style="background:linear-gradient(135deg,#06b6d4,#0891b2); color:white; border:none; padding:8px 12px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; white-space:nowrap;">🎯 이동</button>
+        </div>
+        <div id="v3dLocateResult" style="font-size:10.5px; color:#94a3b8; margin-top:4px; min-height:14px;"></div>
+      </div>
+
+      <!-- 선택 상세 (개선) -->
       <div class="v3d-panel v3d-info" id="v3dInfoPanel" style="padding:14px 16px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; display:none; border-top:2px solid #f59e0b; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
-        <h3 id="v3dInfoTitle" style="color:#fbbf24; font-size:12.5px; margin-bottom:9px; font-weight:800; letter-spacing:-0.3px;">📌 로케이션</h3>
-        ${['로케이션::v3dInfoLoc','등급::v3dInfoGrade','피킹 건수::v3dInfoPick','출고량::v3dInfoQty','도크 거리::v3dInfoDist','골든존::v3dInfoGolden'].map((row,i,arr) => {
+        <h3 id="v3dInfoTitle" style="color:#fbbf24; font-size:13px; margin-bottom:4px; font-weight:800; letter-spacing:-0.3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📌 로케이션</h3>
+        <div id="v3dInfoRackLabel" style="font-size:10.5px; color:#94a3b8; margin-bottom:9px; font-weight:600;">랙</div>
+
+        <!-- 재고 요약 (강조 카드) -->
+        <div style="background:rgba(6,182,212,0.08); border:1px solid rgba(6,182,212,0.3); padding:9px 10px; border-radius:7px; margin-bottom:9px;">
+          <div style="font-size:9.5px; color:#22d3ee; font-weight:700; margin-bottom:4px; letter-spacing:0.4px; text-transform:uppercase;">📦 재고 정보</div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; padding:2px 0; white-space:nowrap;">
+            <span style="color:#94a3b8; font-weight:600;">품목</span><span id="v3dInfoItem" style="color:#f8fafc; font-weight:700; text-align:right;">-</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; padding:2px 0; white-space:nowrap;">
+            <span style="color:#94a3b8; font-weight:600;">수량</span><span id="v3dInfoQtyLoc" style="color:#f8fafc; font-weight:700; text-align:right;">-</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; padding:2px 0; white-space:nowrap;">
+            <span style="color:#94a3b8; font-weight:600;">적재 CBM</span><span id="v3dInfoUsedCbm" style="color:#f8fafc; font-weight:700; text-align:right;">-</span>
+          </div>
+        </div>
+
+        ${['로케이션 코드::v3dInfoLoc','등급::v3dInfoGrade','피킹 건수::v3dInfoPick','출고량(EA)::v3dInfoQty','도크 거리::v3dInfoDist','골든존::v3dInfoGolden'].map((row,i,arr) => {
           const [k,id] = row.split('::');
           return `<div style="display:flex; justify-content:space-between; font-size:11px; padding:6px 0; ${i<arr.length-1?'border-bottom:1px solid rgba(148,163,184,0.15);':''} white-space:nowrap;"><span style="color:#94a3b8; font-weight:600;">${k}</span><span id="${id}" style="color:#f8fafc; font-weight:700; text-align:right;">-</span></div>`;
         }).join('')}
@@ -20419,12 +20446,19 @@ function v3dBuildScene(c) {
           // 랙 자체 적재율 정보
           const rackUtil = (o.capacity_cbm > 0) ? ((+o.used_cbm||0) / o.capacity_cbm * 100) : 0;
 
-          const code = `${o.label || o.id}-${String(lv+1).padStart(2,'0')}${String(b+1).padStart(2,'0')}${sl===0?'F':'R'}`;
+          const locKey = `${String(lv+1).padStart(2,'0')}${String(b+1).padStart(2,'0')}`;
+          const code = `${o.label || o.id}-${locKey}${sl===0?'F':'R'}`;
+          // 랙 오브젝트의 실제 로케이션(재고) 정보 매칭
+          const locData = (o.locations || []).find(l => l.code === locKey);
           const data = {
             code, rackId: o.id, rackType: o.type, rackLabel: o.label || o.id,
-            level: lv, bay: b+1, slot: sl+1,
+            level: lv+1, bay: b+1, slot: sl+1,
+            locCode: locKey,
             pickCount, totalQty, dockDist: Math.round(dockDist), golden,
-            rackUtil, item: o.item || '',
+            rackUtil,
+            item: locData?.item || o.item || '',
+            qty: +locData?.qty || 0,
+            used_cbm: +locData?.used_cbm || 0,
           };
           pal.userData = { data };
           _v3d.rackGroup.add(pal);
@@ -21128,28 +21162,96 @@ function v3dUpdateTopList() {
     </div>`).join('');
 }
 
-// 클릭 처리
+// 클릭 처리 — 로케이션 상세 팝업 (재고 정보 포함)
 function v3dHandleClick(hits) {
   const panel = document.getElementById('v3dInfoPanel');
   if (_v3d.hovered) { _v3d.hovered.scale.set(1,1,1); _v3d.hovered = null; }
   if (hits.length === 0) { if (panel) panel.style.display = 'none'; return; }
   const p = hits[0].object;
+  _v3d.showPalletInfo(p);
+}
+// 🔥 파렛트 mesh 하나에 대한 상세 팝업 표시
+_v3d.showPalletInfo = function(p) {
+  if (_v3d.hovered && _v3d.hovered !== p) { _v3d.hovered.scale.set(1,1,1); }
   _v3d.hovered = p;
-  p.scale.set(1.3, 1.3, 1.3);
+  p.scale.set(1.35, 1.35, 1.35);
   const d = p.userData.data;
-  document.getElementById('v3dInfoTitle').textContent = d.code;
-  document.getElementById('v3dInfoLoc').textContent = d.code;
+  const panel = document.getElementById('v3dInfoPanel');
+  document.getElementById('v3dInfoTitle').textContent = `📌 ${d.code}`;
+  document.getElementById('v3dInfoRackLabel').textContent = `🏷️ ${d.rackLabel} · ${d.level}단 · ${d.bay}번 파렛트 · ${d.slot===1?'앞':'뒤'}`;
+  // 재고 정보
+  document.getElementById('v3dInfoItem').textContent = d.item || '(미등록)';
+  document.getElementById('v3dInfoQtyLoc').textContent = d.qty > 0 ? d.qty.toLocaleString() + ' EA' : '-';
+  document.getElementById('v3dInfoUsedCbm').textContent = d.used_cbm > 0 ? d.used_cbm.toFixed(2) + ' m³' : '-';
+  // 로케이션 코드 (풀 코드)
+  document.getElementById('v3dInfoLoc').innerHTML = `<span style="font-family:monospace; background:rgba(6,182,212,0.15); padding:2px 8px; border-radius:4px; color:#22d3ee;">${d.code}</span>`;
   const gradeColor = d.grade === 'A' ? '#ef4444' : d.grade === 'B' ? '#f59e0b' : '#3b82f6';
-  document.getElementById('v3dInfoGrade').innerHTML = `<span style="background:${gradeColor}; color:white; padding:2px 8px; border-radius:10px; font-weight:700; font-size:10px;">${d.grade}</span>`;
+  document.getElementById('v3dInfoGrade').innerHTML = `<span style="background:${gradeColor}; color:white; padding:2px 8px; border-radius:10px; font-weight:800; font-size:10px;">${d.grade}</span>`;
   document.getElementById('v3dInfoPick').textContent = d.pickCount + '회';
   document.getElementById('v3dInfoQty').textContent = d.totalQty.toLocaleString() + ' EA';
   document.getElementById('v3dInfoDist').textContent = d.dockDist + 'm';
   const gp = Math.round(d.golden * 100);
   document.getElementById('v3dInfoGolden').textContent = `${gp}% ${gp>70?'🟢 최적':gp>40?'🟡 양호':'🔴 부적합'}`;
   if (panel) panel.style.display = 'block';
-  // 편집 대상 랙 ID 기억
   _v3d.editRackId = d.rackId;
-}
+};
+
+// 🔥 로케이션 코드로 찾아서 카메라 이동 + 하이라이트
+window.v3dLocateAndHighlight = function(input) {
+  const resultEl = document.getElementById('v3dLocateResult');
+  const q = String(input || '').trim().toUpperCase();
+  if (!q) { if (resultEl) resultEl.innerHTML = '<span style="color:#f59e0b;">⚠️ 코드를 입력하세요</span>'; return; }
+  if (!_v3d?.palletMeshes?.length) { if (resultEl) resultEl.innerHTML = '<span style="color:#ef4444;">❌ 3D 뷰어 로딩 중</span>'; return; }
+  // 매칭: 정확 일치 → 부분 일치 순
+  let hit = _v3d.palletMeshes.find(p => (p.userData?.data?.code || '').toUpperCase() === q);
+  if (!hit) hit = _v3d.palletMeshes.find(p => (p.userData?.data?.code || '').toUpperCase().includes(q));
+  if (!hit) {
+    if (resultEl) resultEl.innerHTML = `<span style="color:#ef4444;">❌ "${q}" 매칭 없음</span>`;
+    return;
+  }
+  const d = hit.userData.data;
+  // 이전 하이라이트 제거
+  if (_v3d._highlightMesh) {
+    _v3d.scene.remove(_v3d._highlightMesh);
+    _v3d._highlightMesh.geometry?.dispose();
+    _v3d._highlightMesh.material?.dispose();
+    _v3d._highlightMesh = null;
+  }
+  if (_v3d._highlightTimer) { clearTimeout(_v3d._highlightTimer); _v3d._highlightTimer = null; }
+  // 노란 발광 큐브 추가
+  const THREE = window.THREE;
+  const bbox = new THREE.Box3().setFromObject(hit);
+  const size = new THREE.Vector3(); bbox.getSize(size);
+  const center = new THREE.Vector3(); bbox.getCenter(center);
+  const highlightGeo = new THREE.BoxGeometry(size.x * 1.5, size.y * 1.6, size.z * 1.5);
+  const highlightMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.35, wireframe: false });
+  const highlight = new THREE.Mesh(highlightGeo, highlightMat);
+  highlight.position.copy(center);
+  _v3d.scene.add(highlight);
+  _v3d._highlightMesh = highlight;
+  // 파렛트 자체도 확대
+  hit.scale.set(1.4, 1.4, 1.4);
+  _v3d.hovered = hit;
+  // 카메라 이동 (파렛트 앞에서 3~5m 떨어진 위치)
+  const camDist = Math.max(4, size.x + size.z + 2);
+  const targetCamPos = new THREE.Vector3(center.x + camDist, center.y + camDist * 0.7, center.z + camDist);
+  _v3d.camera.position.copy(targetCamPos);
+  _v3d.controls.target.copy(center);
+  _v3d.controls.update();
+  // 팝업 표시
+  _v3d.showPalletInfo(hit);
+  // 결과 텍스트
+  if (resultEl) resultEl.innerHTML = `<span style="color:#22d3ee;">✅ 이동 완료: <b style="font-family:monospace; color:#f8fafc;">${d.code}</b></span>`;
+  // 5초 후 하이라이트 제거 · 파렛트 크기 원복
+  _v3d._highlightTimer = setTimeout(() => {
+    if (_v3d._highlightMesh) {
+      _v3d.scene.remove(_v3d._highlightMesh);
+      _v3d._highlightMesh.geometry?.dispose();
+      _v3d._highlightMesh.material?.dispose();
+      _v3d._highlightMesh = null;
+    }
+  }, 5000);
+};
 
 // 선택한 랙 편집 화면으로 이동
 window.v3dEditSelectedRack = function() {
