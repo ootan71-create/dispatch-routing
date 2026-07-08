@@ -3898,7 +3898,8 @@
             <ul>
               <li><b>복사 Ctrl+C</b> · <b>붙여넣기 Ctrl+V</b> (2m 오프셋 + " (복사)" 접미사, ID 자동 재발급) · <b>잘라내기 Ctrl+X</b> · <b>즉시 복제 Ctrl+D</b></li>
               <li><b>Ctrl+A</b> 전체 선택 (센터의 모든 오브젝트 다중 선택 상태로) · <b>Shift/Ctrl+클릭</b> 도면에서 개별 다중 선택 토글</li>
-              <li><b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동</li>
+              <li><b>🖱️ 다중선택 후 드래그</b>: Ctrl+클릭으로 여러 랙을 선택한 뒤 그중 하나를 마우스 드래그하면 <b>선택된 그룹 전체가 함께 이동</b>합니다 (상대 위치 유지 · 도면 경계·타 랙 자동 회피).</li>
+              <li><b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동 (다중선택 시 그룹 전체)</li>
               <li><b>정렬 8종</b>: ⇤ 왼쪽 / ⇔ 가로 중앙 / ⇥ 오른쪽 / ⇧ 상단 / ⇕ 세로 중앙 / ⇩ 하단 / ↔ 가로 균등 분포 / ↕ 세로 균등 분포 (2개↑ 선택 시)</li>
             </ul>
           </li>
@@ -16842,7 +16843,8 @@ window.MANUAL_DATA = {
             { id: 'fp-cl-1', title: '복사·붙여넣기·정렬 툴바', desc: '캔버스 상단에 편집 도구바 상시 표시.' },
             { id: 'fp-cl-2', title: '단축키', desc: '<b>복사 Ctrl+C</b> · <b>붙여넣기 Ctrl+V</b> (2m 오프셋 + " (복사)" 접미사, ID 자동 재발급) · <b>잘라내기 Ctrl+X</b> · <b>즉시 복제 Ctrl+D</b>.' },
             { id: 'fp-cl-3', title: '전체 선택 · 다중 선택', desc: '<b>Ctrl+A</b> 전체 선택 · <b>Shift/Ctrl+클릭</b> 도면에서 개별 다중 선택 토글.' },
-            { id: 'fp-cl-4', title: '미세 이동', desc: '<b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동.' },
+            { id: 'fp-cl-3b', title: '🖱️ 다중선택 드래그 이동 (신규)', desc: '<b>Ctrl+클릭으로 여러 랙을 선택한 뒤 그중 하나를 드래그</b>하면 <b>선택된 그룹 전체가 함께 이동</b>합니다. 그룹 내 오브젝트 간 상대 위치는 유지되고, 도면 테두리·기타 랙과 겹치지 않도록 자동 클램프됩니다. (Ctrl+C/V/D 복사·복제도 다중선택 그룹 전체에 적용)' },
+            { id: 'fp-cl-4', title: '미세 이동', desc: '<b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동. 다중선택 상태에서는 그룹 전체가 함께 이동.' },
             { id: 'fp-cl-5', title: '정렬 8종', desc: '⇤ 왼쪽 / ⇔ 가로 중앙 / ⇥ 오른쪽 / ⇧ 상단 / ⇕ 세로 중앙 / ⇩ 하단 / ↔ 가로 균등 분포 / ↕ 세로 균등 분포 (2개↑ 선택 시).' },
             { id: 'fp-cl-6', title: '💠 다중선택 시각 표시', desc: '<b>Shift/Ctrl+클릭</b> 또는 표에서 체크한 오브젝트에 <b>파란 점선 굵은 테두리</b> + 드롭섀도우로 도면에서 즉시 식별 가능.' },
           ]},
@@ -17985,11 +17987,11 @@ function renderRack2D(o, PAD, SCALE, isSelected) {
       return `<rect x="${cx}" y="${cy}" width="${cw}" height="${chh}" fill="#7c3aed" fill-opacity="0.45" stroke="#5b21b6" stroke-width="1.2" rx="1" pointer-events="none"/>
               <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="7" fill="#5b21b6" font-weight="700" pointer-events="none">${ch.label||'SL'}</text>`;
     }).join('');
-    // 층 정보 배지 (활성 층 / 총 층 · 하위 개수)
+    // 층 정보 배지 (활성 층 / 총 층 · 하위 개수) — "단" 접미사 제거
     const totalChildren = (o.children||[]).length;
     const floorBadge = totalChildren > 0
       ? `<rect x="${x+2}" y="${y+2}" width="${Math.min(80, w-4)}" height="14" fill="#166534" opacity="0.85" rx="2"/>
-         <text x="${x+6}" y="${y+13}" font-size="9" fill="#fff" font-weight="700" pointer-events="none">📚 ${activeFloor}/${levels}단 · ${childrenOnFloor.length}/${totalChildren}</text>`
+         <text x="${x+6}" y="${y+13}" font-size="9" fill="#fff" font-weight="700" pointer-events="none">📚 ${activeFloor}/${levels} · ${childrenOnFloor.length}/${totalChildren}</text>`
       : '';
     bodyMarkup = `
       <rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${actualSpec.color}" fill-opacity="0.18" stroke="${actualSpec.accent}" stroke-width="1.8" rx="3"/>
@@ -18077,7 +18079,7 @@ function renderRack2D(o, PAD, SCALE, isSelected) {
     ${bodyMarkup}
     ${gauge}
     <text x="${x+w/2}" y="${y+h/2-2}" text-anchor="middle" font-size="10" fill="${actualSpec.accent}" font-weight="700" pointer-events="none">${o.label || o.id}</text>
-    <text x="${x+w/2}" y="${y+h/2+10}" text-anchor="middle" font-size="8" fill="${actualSpec.accent}" opacity="0.75" pointer-events="none">${actualSpec.short} · ${levels}단</text>
+    <text x="${x+w/2}" y="${y+h/2+10}" text-anchor="middle" font-size="8" fill="${actualSpec.accent}" opacity="0.75" pointer-events="none">${actualSpec.short}</text>
   </g>`;
 }
 
@@ -18166,7 +18168,7 @@ function renderRack3D(o, PAD, SCALE, isSelected) {
     ${topFace}
     ${levelLines}
     <text x="${labelPos.x}" y="${labelPos.y}" text-anchor="middle" font-size="10" fill="${strokeColor}" font-weight="700" pointer-events="none">${o.label || o.id}</text>
-    <text x="${labelPos.x}" y="${labelPos.y + 12}" text-anchor="middle" font-size="9" fill="${strokeColor}" opacity="0.85" pointer-events="none">${actualSpec.short} · ${levels}단 · ${utilPct.toFixed(0)}%</text>
+    <text x="${labelPos.x}" y="${labelPos.y + 12}" text-anchor="middle" font-size="9" fill="${strokeColor}" opacity="0.85" pointer-events="none">${actualSpec.short} · ${utilPct.toFixed(0)}%</text>
   </g>`;
 }
 
@@ -21275,12 +21277,19 @@ async function onCCTVRotateEnd() {
 window.startFloorplanDrag = function(evt, objId) {
   evt.stopPropagation();
   if (floorplanTool !== 'select') return;
-  floorplanSelectedId = objId;
   const c = getActiveCenter();
   if (!c) return;
   const o = c.floorplan.objects.find(x => x.id === objId);
   if (!o) return;
-  pushFloorplanUndo('오브젝트 이동');
+  // 🔥 다중선택 상태에서 그룹 내 항목을 드래그하면 그룹 전체 이동
+  // - 클릭 오브젝트가 checked 세트에 없으면 단일 이동 (다른 다중선택 해제 X — 편집 흐름 유지)
+  const isGroupDrag = floorplanListChecked.size > 1 && floorplanListChecked.has(objId);
+  const groupIds = isGroupDrag ? Array.from(floorplanListChecked) : [objId];
+  const groupObjs = groupIds.map(id => c.floorplan.objects.find(x => x.id === id)).filter(Boolean);
+  if (groupObjs.length === 0) return;
+  // 다중이 아닐 때만 단일 활성 선택으로 전환
+  if (!isGroupDrag) floorplanSelectedId = objId;
+  pushFloorplanUndo(isGroupDrag ? `${groupObjs.length}개 그룹 이동` : '오브젝트 이동');
   const svg = document.getElementById('floorplanSvg');
   const rect = svg.getBoundingClientRect();
   const PAD = 30, SCALE = 8;
@@ -21288,10 +21297,11 @@ window.startFloorplanDrag = function(evt, objId) {
     objId,
     startX: evt.clientX,
     startY: evt.clientY,
-    origX: o.x,
-    origY: o.y,
     svgRect: rect,
     scale: SCALE,
+    // 그룹 드래그: 각 오브젝트의 원본 좌표를 미리 스냅샷
+    group: groupObjs.map(g => ({ id: g.id, origX: +g.x||0, origY: +g.y||0 })),
+    isGroup: isGroupDrag,
   };
   window.addEventListener('mousemove', onFloorplanDragMove);
   window.addEventListener('mouseup', onFloorplanDragEnd, { once: true });
@@ -21300,36 +21310,57 @@ function onFloorplanDragMove(evt) {
   if (!floorplanDragState) return;
   const c = getActiveCenter();
   if (!c) return;
-  const o = c.floorplan.objects.find(x => x.id === floorplanDragState.objId);
-  if (!o) return;
-  // 확대율 반영: 화면 픽셀 → 도면 미터
   const zoom = (typeof floorplanZoom === 'number' && floorplanZoom > 0) ? floorplanZoom : 1;
-  const dx = (evt.clientX - floorplanDragState.startX) / (floorplanDragState.scale * zoom);
-  const dy = (evt.clientY - floorplanDragState.startY) / (floorplanDragState.scale * zoom);
-  // 모든 랙은 도면 테두리 안에서만 이동 (크기 반영). 시설(w/h 없는 것 포함)은 원점만 도면 안이면 됨.
-  const rack = isRackType(o.type);
-  const w = rack ? (+o.w || 0) : 0;
-  const h = rack ? (+o.h || 0) : 0;
-  const maxX = Math.max(0, c.floorplan.width  - w);
-  const maxY = Math.max(0, c.floorplan.height - h);
-  const newX = Math.max(0, Math.min(maxX, Math.round((floorplanDragState.origX + dx) * 2) / 2));
-  const newY = Math.max(0, Math.min(maxY, Math.round((floorplanDragState.origY + dy) * 2) / 2));
-  // 랙 겹침 검사: 다른 랙과 겹치면 이동 취소 (마지막 유효 좌표 유지)
-  if (rack) {
-    const candidate = { x: newX, y: newY, w, h };
-    if (rackOverlapsAny(c, candidate, o.id)) {
-      // 겹치면 이동하지 않고 현재 위치 유지 (진행 중 드래그에서는 그대로 놔둠)
-      return;
-    }
+  const rawDx = (evt.clientX - floorplanDragState.startX) / (floorplanDragState.scale * zoom);
+  const rawDy = (evt.clientY - floorplanDragState.startY) / (floorplanDragState.scale * zoom);
+  // 그룹 내 모든 오브젝트가 도면 안에 들어가는지 클램프 계산
+  //   → 각 오브젝트의 origX + rawDx 를 0..maxX 로 클램프한 실제 dx 를 찾아서 그룹 전체에 균일 적용
+  let dx = Math.round(rawDx * 2) / 2;
+  let dy = Math.round(rawDy * 2) / 2;
+  // 그룹 이동 시 도면 밖으로 나가지 않도록 dx/dy 클램프
+  floorplanDragState.group.forEach(g => {
+    const obj = c.floorplan.objects.find(x => x.id === g.id);
+    if (!obj) return;
+    const rack = isRackType(obj.type);
+    const w = rack ? (+obj.w || 0) : 0;
+    const h = rack ? (+obj.h || 0) : 0;
+    const maxX = Math.max(0, c.floorplan.width  - w);
+    const maxY = Math.max(0, c.floorplan.height - h);
+    // 클램프: g.origX + dx 가 [0, maxX] 안에 들어오도록 dx 조정
+    if (g.origX + dx < 0) dx = -g.origX;
+    if (g.origX + dx > maxX) dx = maxX - g.origX;
+    if (g.origY + dy < 0) dy = -g.origY;
+    if (g.origY + dy > maxY) dy = maxY - g.origY;
+  });
+  // 그룹 겹침 검사: 그룹 밖 오브젝트와 겹치면 이번 프레임 스킵 (마지막 유효 좌표 유지)
+  const groupIdSet = new Set(floorplanDragState.group.map(g => g.id));
+  for (const g of floorplanDragState.group) {
+    const obj = c.floorplan.objects.find(x => x.id === g.id);
+    if (!obj || !isRackType(obj.type)) continue;
+    const candidate = { x: g.origX + dx, y: g.origY + dy, w: +obj.w||0, h: +obj.h||0 };
+    // 그룹 내 다른 오브젝트는 무시 (자체 겹침 허용)
+    if (rackOverlapsAnyExcept(c, candidate, groupIdSet)) return;
   }
-  o.x = newX;
-  o.y = newY;
-  // 즉시 SVG 위치 갱신 (전체 재렌더 없이)
-  const svg = document.getElementById('floorplanSvg');
-  if (svg) {
-    // Simple approach: re-render whole SVG efficiently
-    renderCenterSubTabContent();
+  // 이동 적용
+  floorplanDragState.group.forEach(g => {
+    const obj = c.floorplan.objects.find(x => x.id === g.id);
+    if (!obj) return;
+    obj.x = g.origX + dx;
+    obj.y = g.origY + dy;
+  });
+  renderCenterSubTabContent();
+}
+// 그룹 이동용 겹침 검사 — 지정된 exceptIds 제외
+function rackOverlapsAnyExcept(c, candidate, exceptIds) {
+  const objs = c.floorplan?.objects || [];
+  for (const other of objs) {
+    if (exceptIds.has(other.id)) continue;
+    if (!isRackType(other.type)) continue;
+    const ox = +other.x||0, oy = +other.y||0, ow = +other.w||0, oh = +other.h||0;
+    if (candidate.x < ox + ow && candidate.x + candidate.w > ox &&
+        candidate.y < oy + oh && candidate.y + candidate.h > oy) return true;
   }
+  return false;
 }
 async function onFloorplanDragEnd() {
   window.removeEventListener('mousemove', onFloorplanDragMove);
