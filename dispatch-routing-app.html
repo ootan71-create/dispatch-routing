@@ -16893,6 +16893,8 @@ window.MANUAL_DATA = {
             { id: 'fp-m-8', title: '🏢 매자닌 하위 높이 필드', desc: '매자닌 내부 선반랙/평치 각각에 <b>높이 컬럼</b> 추가. 선반랙은 <b>단높이</b>(mm) · 평치는 <b>총 높이</b>(mm). 기본 규격에서도 지정 → 이후 추가 시 자동 반영.' },
             { id: 'fp-m-9', title: '🪜 이동계단 · 🚶 이동동선', desc: '매자닌 편집기에서 <b>🪜 이동계단</b> · <b>🚶 이동동선</b> 추가 가능. 이동동선은 시작·끝 지점을 마우스로 조정. 둘 다 CBM 미산정 (작업 동선/구조물).' },
             { id: 'fp-m-10', title: '🔨 작업장 (신규)', desc: '매자닌 하위에 <b>🔨 작업장</b> 추가 가능. 포장·검수·리패키징 등 작업 공간을 도면에 표시. 기본 규격 3m × 3m. <b>노랑-주황 대각 스트라이프</b> 패턴으로 저장 랙과 확연히 구분. 계단·동선처럼 <b>CBM 미산정</b>(공간이지만 저장 용도 아님) — 매자닌 총 CBM 합계에서 자동 제외.' },
+            { id: 'fp-m-11', title: '✏️ 명칭 인라인 편집 (신규)', desc: '매자닌 하위 오브젝트 목록 표에 <b>명칭 컬럼</b> 추가. 셀 클릭 후 바로 텍스트 입력. 미니 캔버스의 라벨 텍스트를 <b>더블클릭</b>해도 prompt로 이름 변경 가능. 작업장·평치·선반랙 등 모든 타입 지원.' },
+            { id: 'fp-m-12', title: '📐 마우스로 크기 조정 (신규)', desc: '미니 캔버스에서 각 하위 오브젝트 <b>우측하단 흰색 핸들</b>을 마우스 드래그하면 W/H가 실시간 변경됩니다. 최소 0.5m, 매자닌 경계까지 자동 클램프. 저장 랙(평치·선반랙)은 크기 변경 시 CBM 용량도 자동 재계산.' },
           ]},
           { id: 'fp-dock', title: '🚛 상하차 도크', items: [
             { id: 'fp-d-1', title: '기본 규격', desc: '도크에 <b>크기 조절(3m×2m 기본)</b> · <b>노란-주황 스트라이프 마킹</b> · <b>라벨 표시</b>. 리사이즈 핸들로 실제 도크 도어 크기에 맞춰 조절. 3D 뷰에서도 실 크기 반영.' },
@@ -16921,6 +16923,8 @@ window.MANUAL_DATA = {
             { id: 'v-i-2', title: '🏆 Top 5 핫스팟', desc: '피킹 최다 로케이션 자동 리스트업.' },
             { id: 'v-i-3', title: '파렛트 단일 클릭 → 상세 팝업', desc: '로케이션 코드 · 등급 배지 · 피킹 건수 · 출고량 · 도크 거리 · 골든존 적합도(%).' },
             { id: 'v-i-4', title: '✏️ 이 랙 편집하기', desc: '3D에서 선택한 랙을 <b>2D 도면 관리 탭에서 자동 선택</b>. 3D 뷰어 ↔ 2D 편집기 매끄러운 전환.' },
+            { id: 'v-i-5', title: '🏷️ 바닥 존 라벨 자동 크기 조정 (개선)', desc: '3D 뷰어의 랙 앞 존 라벨(예: "B2")이 <b>랙 폭에 맞춰 폭이 자동 축소</b>되고, 좁은 세로 랙일수록 <b>앞으로 더 밀려 배치</b>되어 옆 랙 라벨과 겹치지 않습니다.' },
+            { id: 'v-i-6', title: '📊 적재율 모드 라벨 % 표시 (신규)', desc: '히트맵 모드를 <b>📊 적재율</b>로 전환하면 각 랙 앞 라벨에 <b>"존코드 · 78%" 형태로 실제 적재율이 함께 표시</b>됩니다. 색상(Cold→Hot)과 숫자를 함께 볼 수 있어 정확한 값 파악이 가능. 모드를 다른 것으로 바꾸면 라벨은 다시 존코드만 표시.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -19026,12 +19030,18 @@ function renderMezzanineMiniCanvas(c, mez, activeFloor) {
             const cy = 20 + (+ch.y||0) * scale;
             const cw = (+ch.w||1.2) * scale;
             const chh = (+ch.h||0.6) * scale;
+            // 우측하단 리사이즈 핸들 (공통) — 5px 사각형, 대각선 커서
+            const rzHandle = `<rect x="${cx+cw-6}" y="${cy+chh-6}" width="8" height="8" fill="#fff" stroke="#166534" stroke-width="1.2" rx="1"
+              style="cursor:nwse-resize;"
+              onmousedown="startMezMiniResize(event, '${c.id}', '${mez.id}', ${x.idx})"/>`;
+            // 라벨 더블클릭 편집 (공통) — 이벤트는 텍스트에만 걸림
+            const editableLabel = (labelText, fill) => `<text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="${Math.max(8, Math.min(12, cw/7))}" fill="${fill}" font-weight="700"
+              style="cursor:text;" ondblclick="event.stopPropagation(); renameMezChild('${c.id}','${mez.id}',${x.idx})">${labelText}</text>`;
             // 작업장(workshop): 노랑-주황 스트라이프
             if (ch.type === 'workshop') {
               const stripeId = `mezMiniWsStripe-${mez.id}-${x.idx}`;
               return `
-                <g class="mez-mini-obj" data-idx="${x.idx}" style="cursor:move;"
-                  onmousedown="startMezMiniDrag(event, '${c.id}', '${mez.id}', ${x.idx})">
+                <g class="mez-mini-obj" data-idx="${x.idx}" style="cursor:move;">
                   <defs>
                     <pattern id="${stripeId}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
                       <rect width="8" height="8" fill="#fef3c7"/>
@@ -19039,8 +19049,10 @@ function renderMezzanineMiniCanvas(c, mez, activeFloor) {
                     </pattern>
                   </defs>
                   <rect x="${cx}" y="${cy}" width="${cw}" height="${chh}"
-                    fill="url(#${stripeId})" stroke="#b45309" stroke-width="1.8" rx="2"/>
-                  <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="${Math.max(9, Math.min(12, cw/6))}" fill="#78350f" font-weight="700" pointer-events="none">🔨 ${ch.label||'작업장'}</text>
+                    fill="url(#${stripeId})" stroke="#b45309" stroke-width="1.8" rx="2"
+                    onmousedown="startMezMiniDrag(event, '${c.id}', '${mez.id}', ${x.idx})"/>
+                  ${editableLabel(`🔨 ${ch.label||'작업장'}`, '#78350f')}
+                  ${rzHandle}
                 </g>`;
             }
             const isFlat = ch.type === 'flat';
@@ -19048,11 +19060,12 @@ function renderMezzanineMiniCanvas(c, mez, activeFloor) {
             const stroke = isFlat ? '#0e7490' : '#5b21b6';
             const label = ch.label || (isFlat ? '평치' : 'SL');
             return `
-              <g class="mez-mini-obj" data-idx="${x.idx}" style="cursor:move;"
-                onmousedown="startMezMiniDrag(event, '${c.id}', '${mez.id}', ${x.idx})">
+              <g class="mez-mini-obj" data-idx="${x.idx}" style="cursor:move;">
                 <rect x="${cx}" y="${cy}" width="${cw}" height="${chh}"
-                  fill="${fill}" fill-opacity="0.55" stroke="${stroke}" stroke-width="1.5" rx="2"/>
-                <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="${Math.max(8, Math.min(11, cw/6))}" fill="#fff" font-weight="700" pointer-events="none">${label}</text>
+                  fill="${fill}" fill-opacity="0.55" stroke="${stroke}" stroke-width="1.5" rx="2"
+                  onmousedown="startMezMiniDrag(event, '${c.id}', '${mez.id}', ${x.idx})"/>
+                ${editableLabel(label, '#fff')}
+                ${rzHandle}
               </g>`;
           }).join('')}
           <!-- 타 층 오브젝트: 회색 반투명 참고 -->
@@ -19134,6 +19147,64 @@ window.startMezMiniDrag = function(evt, centerId, mezId, childIdx) {
   window.addEventListener('mouseup', up, { once: true });
 };
 
+// 🔥 미니 캔버스: 우측하단 핸들로 크기 조정 (w/h)
+window.startMezMiniResize = function(evt, centerId, mezId, childIdx) {
+  evt.stopPropagation();
+  evt.preventDefault();
+  const c = centerOps.centers.find(x => x.id === centerId);
+  const mez = c?.floorplan.objects.find(o => o.id === mezId);
+  if (!mez || !mez.children || !mez.children[childIdx]) return;
+  const ch = mez.children[childIdx];
+  // path/stairs 는 리사이즈 대상 아님 (핸들도 안 그려지지만 안전차원)
+  if (ch.type === 'path') return;
+  const mezW_m = +mez.w || 6, mezH_m = +mez.h || 6;
+  const scale = Math.max(6, Math.min(30, 800 / mezW_m));
+  const startX = evt.clientX, startY = evt.clientY;
+  const origW = +ch.w || 1.2, origH = +ch.h || 0.6;
+  let resized = false;
+  pushFloorplanUndo('매자닌 하위 크기 조정');
+  const move = (e) => {
+    const dw = (e.clientX - startX) / scale;
+    const dh = (e.clientY - startY) / scale;
+    if (Math.abs(dw) > 0.05 || Math.abs(dh) > 0.05) resized = true;
+    // 최소 0.5m, 매자닌 경계 안에서만
+    const chX = +ch.x || 0, chY = +ch.y || 0;
+    const maxW = mezW_m - chX;
+    const maxH = mezH_m - chY;
+    ch.w = Math.max(0.5, Math.min(maxW, Math.round((origW + dw) * 2) / 2));
+    ch.h = Math.max(0.5, Math.min(maxH, Math.round((origH + dh) * 2) / 2));
+    // 저장 랙(shelf/flat/workshop) capacity_cbm 재계산
+    if (ch.type === 'flat' || ch.type === 'rack-shelving') {
+      const chLevels = +ch.levels || (ch.type === 'flat' ? 1 : 5);
+      const chHeightM = +ch.heightM || (ch.type === 'flat' ? 2 : 0.4);
+      const totalH = ch.type === 'flat' ? chHeightM : (chLevels * chHeightM);
+      ch.capacity_cbm = Math.round((ch.w * ch.h * totalH) * 100) / 100;
+    }
+    renderCenterSubTabContent();
+  };
+  const up = async () => {
+    window.removeEventListener('mousemove', move);
+    if (resized) await saveCenterOps();
+  };
+  window.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', up, { once: true });
+};
+
+// 🔥 미니 캔버스: 라벨 더블클릭 → prompt로 이름 변경
+window.renameMezChild = async function(centerId, mezId, childIdx) {
+  const c = centerOps.centers.find(x => x.id === centerId);
+  const mez = c?.floorplan.objects.find(o => o.id === mezId);
+  if (!mez || !mez.children || !mez.children[childIdx]) return;
+  const ch = mez.children[childIdx];
+  const currentLabel = ch.label || '';
+  const newLabel = prompt(`명칭 변경 (${ch.type === 'workshop' ? '작업장' : ch.type === 'flat' ? '평치' : ch.type === 'stairs' ? '이동계단' : ch.type === 'path' ? '이동동선' : '선반랙'})`, currentLabel);
+  if (newLabel === null) return; // 취소
+  pushFloorplanUndo('매자닌 하위 명칭 변경');
+  ch.label = newLabel.trim();
+  await saveCenterOps();
+  renderCenterSubTabContent();
+};
+
 // 매자닌랙 내부에 배치되는 하위 오브젝트(선반랙 · 평치) 편집기
 // 각 하위 오브젝트는 매자닌의 몇 단(floor)에 위치하는지 지정 (기본 1단)
 function renderMezzanineChildrenEditor(c, mez) {
@@ -19181,6 +19252,7 @@ function renderMezzanineChildrenEditor(c, mez) {
         </td>
         <td style="padding:5px 6px; text-align:center; color:var(--c-ink-2); font-family:monospace;">${seq+1}</td>
         <td style="padding:5px 6px; text-align:center; font-weight:600; color:${tool.color};">${tool.icon} ${tool.label}</td>
+        <td style="padding:5px 6px;">${cellIn(ch.label || '', `updateMezzanineChild('${c.id}','${mez.id}',${i},'label', this.value)`)}</td>
         <td style="padding:5px 6px;">${cellIn(zone, `updateMezzanineChild('${c.id}','${mez.id}',${i},'zone', this.value)`)}</td>
         <td style="padding:5px 6px;">${cellIn(loc, `updateMezzanineChild('${c.id}','${mez.id}',${i},'location', this.value)`)}</td>
         <td style="padding:5px 6px;">
@@ -19310,6 +19382,7 @@ function renderMezzanineChildrenEditor(c, mez) {
                 </th>
                 <th style="padding:6px 4px; text-align:center; width:38px;">순번</th>
                 <th style="padding:6px 6px; text-align:center; width:74px;">타입</th>
+                <th style="padding:6px 4px; text-align:center; width:110px;">명칭</th>
                 <th style="padding:6px 4px; text-align:center; width:70px;">존</th>
                 <th style="padding:6px 4px; text-align:center; width:90px;">로케이션</th>
                 <th style="padding:6px 4px; text-align:center; width:56px;">층</th>
@@ -20085,11 +20158,29 @@ function v3dBuildScene(c) {
       }
     }
 
-    // 랙 라벨
-    const lblTex = _v3dTextTex(o.label || o.id, '#fffbe6', '#0f1220', 128, 48);
-    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.75), new THREE.MeshBasicMaterial({ map: lblTex, transparent: true }));
+    // 랙 라벨 — 폭·위치를 랙 크기에 맞춰 자동 조정 (겹침 방지)
+    //   · 라벨 폭: 랙의 앞면(가로 랙: w · 세로 랙: min(w, 1.5)) 의 90% 로 제한, 최대 2.2m
+    //   · 위치: 랙 정면 앞쪽 오프셋을 크기에 비례해 확대(좁은 랙일수록 더 앞으로 밀어서 옆 랙 라벨과 겹치지 않게)
+    //   · 적재율 모드일 때는 라벨 텍스트에 '%'를 추가 (예: "B2 · 78%")
+    const _isVerticalRack2 = h > w;
+    const labelWorldW = Math.min(2.2, Math.max(0.8, (_isVerticalRack2 ? w : w) * 0.85));
+    const labelWorldH = labelWorldW * 0.32;
+    // 존 코드 자체 (짧게)
+    const rackLblText = o.label || o.id;
+    // 적재율 (%) — v3dApplyMode 에서 텍스처를 갱신하므로 여기서는 초기값(현재 저장된 값)만 반영
+    const initialUtil = (o.capacity_cbm > 0) ? ((+o.used_cbm||0) / o.capacity_cbm * 100) : 0;
+    const initialTxt = (_v3d?.mode === 'util') ? `${rackLblText} · ${initialUtil.toFixed(0)}%` : rackLblText;
+    // 텍스처 해상도: 폭을 픽셀로 크게 뽑아 가독성 확보
+    const texW = 256, texH = 80;
+    const lblTex = _v3dTextTex(initialTxt, '#fffbe6', '#0f1220', texW, texH);
+    const lbl = new THREE.Mesh(new THREE.PlaneGeometry(labelWorldW, labelWorldH), new THREE.MeshBasicMaterial({ map: lblTex, transparent: true }));
     lbl.rotation.x = -Math.PI/2;
-    lbl.position.set(center.x, 0.06, center.z + h/2 + 0.6);
+    // 라벨 위치: 랙 정면 바닥에 붙되, 좁은 랙(세로 랙)은 앞으로 더 밀기
+    const labelZOffset = _isVerticalRack2 ? Math.max(0.9, h/2 + 0.9) : (h/2 + 0.5);
+    lbl.position.set(center.x, 0.07, center.z + labelZOffset);
+    lbl.userData._isRackLabel = true;
+    lbl.userData._rackLabelText = rackLblText;
+    lbl.userData._rackId = o.id;
     _v3d.rackGroup.add(lbl);
 
     // 매자닌: 각 층 데크 + 하위 오브젝트(선반랙·평치) 3D 렌더링
@@ -20326,6 +20417,27 @@ function v3dApplyMode() {
     else if (_v3d.mode === 'util') c = _v3dHeatColor(d.rackUtil / 100);
     p.material.color = c;
     p.material.emissive = c.clone().multiplyScalar(0.2);
+  });
+  // 🔥 랙 라벨 텍스처 갱신 — 적재율 모드면 "존코드 · N%" 로, 그 외에는 존코드만
+  //   랙별 rackUtil 은 팔레트 데이터에서 조회 (같은 랙 = 같은 값)
+  const rackUtilByRackId = new Map();
+  _v3d.palletMeshes.forEach(p => {
+    const d = p.userData.data;
+    if (!rackUtilByRackId.has(d.rackId)) rackUtilByRackId.set(d.rackId, d.rackUtil);
+  });
+  _v3d.rackGroup.children.forEach(child => {
+    if (!child.userData?._isRackLabel) return;
+    const baseTxt = child.userData._rackLabelText || '';
+    const rackId = child.userData._rackId;
+    let txt = baseTxt;
+    if (_v3d.mode === 'util') {
+      const u = rackUtilByRackId.get(rackId) || 0;
+      txt = `${baseTxt} · ${u.toFixed(0)}%`;
+    }
+    const newTex = _v3dTextTex(txt, '#fffbe6', '#0f1220', 256, 80);
+    if (child.material.map) child.material.map.dispose();
+    child.material.map = newTex;
+    child.material.needsUpdate = true;
   });
   const titles = { pick:'🌡️ 피킹 건수', qty:'📦 출고량 (EA)', abc:'🏷️ ABC 등급', util:'📊 랙 적재율 (%)' };
   const el = document.getElementById('v3dGradientTitle');
