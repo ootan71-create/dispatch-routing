@@ -17890,8 +17890,8 @@ function renderFloorplanObject(o, PAD, SCALE) {
     const rot = +o.rotation || 0;
     const swingSide = o.swingSide === 'right' ? 'right' : 'left';
     const swingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
-    // 벽 개구부: 얇은 밝은 회색 사각형 (클릭 잡는 유일한 영역)
-    const wallOpening = `<rect x="0" y="0" width="${dw}" height="${dh}" fill="#f8fafc" stroke="#0f172a" stroke-width="1.2"${strokeSelected}/>`;
+    // 벽 개구부: 얇은 밝은 회색 사각형 — 클릭 잡는 유일한 영역
+    const wallOpening = `<rect x="0" y="0" width="${dw}" height="${dh}" fill="#f8fafc" stroke="#0f172a" stroke-width="1.2"${strokeSelected} pointer-events="all"/>`;
     // 좌우 문 스톱 (벽 잔여 부분) — 시각용, 클릭 이벤트 잡지 않음
     const stops = `<line x1="0" y1="${dh/2}" x2="-4" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8" pointer-events="none"/>
                    <line x1="${dw}" y1="${dh/2}" x2="${dw+4}" y2="${dh/2}" stroke="#0f172a" stroke-width="1.8" pointer-events="none"/>`;
@@ -17940,7 +17940,7 @@ function renderFloorplanObject(o, PAD, SCALE) {
     const edSwingSide = o.swingSide === 'right' ? 'right' : 'left';
     const edSwingAngle = Math.max(0, Math.min(90, +o.swingAngle ?? 90));
     // 개구부 (밝은 초록 배경) — 클릭 잡는 유일한 영역
-    const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="2"${strokeSelected}/>`;
+    const edOpening = `<rect x="0" y="0" width="${edW}" height="${edH}" fill="#dcfce7" stroke="#16a34a" stroke-width="2"${strokeSelected} pointer-events="all"/>`;
     // 문 스톱 — 시각용, 이벤트 무시
     const edStops = `<line x1="0" y1="${edH/2}" x2="-5" y2="${edH/2}" stroke="#166534" stroke-width="2.2" pointer-events="none"/>
                      <line x1="${edW}" y1="${edH/2}" x2="${edW+5}" y2="${edH/2}" stroke="#166534" stroke-width="2.2" pointer-events="none"/>`;
@@ -17988,22 +17988,37 @@ function renderFloorplanObject(o, PAD, SCALE) {
     </g>`;
   }
   if (o.type === 'workshop') {
-    // 🔥 도면 최상위 작업장: 노랑-주황 대각 스트라이프 바닥 + 라벨만
+    // 🔥 도면 최상위 작업장: pattern 대신 명시적 배경 rect + 대각 스트라이프 라인
+    //   → 어떤 브라우저에서도 클릭 판정이 확실히 잡히도록 pointer-events="all" 명시
     const SCALE_WS = 8;
     const wsW = (+o.w || 4) * SCALE_WS;
     const wsH = (+o.h || 3) * SCALE_WS;
-    const patternId = `wsFloorStripe-${o.id}`;
+    // 대각 스트라이프 라인: 45도 방향, 6px 간격 (SVG clip-path로 rect 안에만 표시)
+    const clipId = `wsClip-${o.id}`;
+    const stripeStep = 8;
+    const stripes = [];
+    const diag = wsW + wsH; // 대각선 길이 근사
+    for (let s = -diag; s < diag; s += stripeStep) {
+      // 라인 두께 3px, 45도 방향
+      stripes.push(`<line x1="${x + s}" y1="${y}" x2="${x + s + diag}" y2="${y + diag}" stroke="#f59e0b" stroke-width="3" opacity="0.55" pointer-events="none"/>`);
+    }
     return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
       onmousedown="startFloorplanDrag(event, '${o.id}')"
       onclick="event.stopPropagation(); selectFloorplanObj('${o.id}', event)">
       <defs>
-        <pattern id="${patternId}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-          <rect width="8" height="8" fill="#fef3c7"/>
-          <rect width="4" height="8" fill="#f59e0b" opacity="0.65"/>
-        </pattern>
+        <clipPath id="${clipId}">
+          <rect x="${x}" y="${y}" width="${wsW}" height="${wsH}" rx="3"/>
+        </clipPath>
       </defs>
+      <!-- 클릭 판정 rect: 크림색 배경 + 명시적 pointer-events -->
       <rect x="${x}" y="${y}" width="${wsW}" height="${wsH}" rx="3"
-        fill="url(#${patternId})" stroke="#b45309" stroke-width="2" stroke-dasharray="6 3"${strokeSelected}/>
+        fill="#fef3c7" stroke="#b45309" stroke-width="2" stroke-dasharray="6 3"${strokeSelected}
+        pointer-events="all"/>
+      <!-- 스트라이프 오버레이 (rect 안에만 표시, 클릭 방해 없음) -->
+      <g clip-path="url(#${clipId})" pointer-events="none">
+        ${stripes.join('')}
+      </g>
+      <!-- 라벨 아이콘 + 텍스트 (클릭 시 아래 rect로 전달) -->
       <text x="${x + wsW/2}" y="${y + wsH/2 - 4}" text-anchor="middle" font-size="14" fill="#78350f" font-weight="700" pointer-events="none">🔨</text>
       <text x="${x + wsW/2}" y="${y + wsH/2 + 12}" text-anchor="middle" font-size="12" fill="#78350f" font-weight="700" pointer-events="none">${o.label || '작업장'}</text>
     </g>`;
