@@ -16925,6 +16925,10 @@ window.MANUAL_DATA = {
             { id: 'v-i-4', title: '✏️ 이 랙 편집하기', desc: '3D에서 선택한 랙을 <b>2D 도면 관리 탭에서 자동 선택</b>. 3D 뷰어 ↔ 2D 편집기 매끄러운 전환.' },
             { id: 'v-i-5', title: '🏷️ 바닥 존 라벨 자동 크기 조정 (개선)', desc: '3D 뷰어의 랙 앞 존 라벨(예: "B2")이 <b>랙 폭에 맞춰 폭이 자동 축소</b>되고, 좁은 세로 랙일수록 <b>앞으로 더 밀려 배치</b>되어 옆 랙 라벨과 겹치지 않습니다.' },
             { id: 'v-i-6', title: '📊 적재율 모드 라벨 % 표시 (신규)', desc: '히트맵 모드를 <b>📊 적재율</b>로 전환하면 각 랙 앞 라벨에 <b>"존코드 · 78%" 형태로 실제 적재율이 함께 표시</b>됩니다. 색상(Cold→Hot)과 숫자를 함께 볼 수 있어 정확한 값 파악이 가능. 모드를 다른 것으로 바꾸면 라벨은 다시 존코드만 표시.' },
+            { id: 'v-i-7', title: '🏗️ 시설 실사적 형상 (신규)', desc: '<ul><li><b>🚛 도크</b>: 노랑-검정 대각 스트라이프 바닥 + <b>셔터 뒷벽</b>(7줄 리브) + 크레들 <b>범퍼 2개</b> + 도크 번호 라벨.</li><li><b>🛗 화물 엘리베이터</b>: 4.5m 샤프트 + 은색 <b>2문 슬라이드 도어</b>(중앙 슬릿) + 상단 <b>녹색 지시등</b>(발광) + 노랑 배경 라벨.</li><li><b>🪜 계단</b>: 10단 실제 <b>스텝 형태</b>(박스 하나 대신) + 좌우 난간 + 계단 위 라벨. 매자닌 하위 계단은 8단으로 렌더.</li><li><b>🏠 실</b>: 라벨을 정면 벽에 큼직하게 부착 (기울임 대신 정면 부착으로 가독성 개선).</li></ul>' },
+            { id: 'v-i-8', title: '🟪 매자닌 선반랙 구조화 (개선)', desc: '기존 단순 다층 박스에서 <b>실제 선반 구조</b>로 개선: <b>4모서리 기둥</b>(짙은 보라) + 각 단마다 <b>얇은 판</b> + 판 위 <b>물품 상자</b>(밝은 보라, 반투명) + 상판. 매자닌 내부에서도 진짜 선반랙임이 즉시 인식됨.' },
+            { id: 'v-i-9', title: '🔨 매자닌 작업장 3D 개선 (신규)', desc: '기존에 높은 다층 박스로 잘못 렌더되던 작업장이 <b>바닥 스트라이프 구역 + 사용자 지정 명칭만 표시</b>하는 형태로 수정. 매자닌 층 위에 노랑-주황 대각 스트라이프 바닥 + 진한 주황 테두리 + "🔨 (사용자 지정 라벨)" 오버레이. 저장 랙과 명확히 구분.' },
+            { id: 'v-i-10', title: '🏛️ 파렛트랙 2파렛트마다 기둥 (신규)', desc: '실제 파렛트랙 표준 구조를 반영: 모서리 4개 기둥 외에 <b>파렛트 2개마다 프레임 기둥 1개</b>씩 추가로 세워집니다. 예) 4파렛트 랙 → 중간 기둥 1개, 6파렛트 랙 → 중간 2개. 긴 랙일수록 실제 구조와 일치.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -20060,9 +20064,25 @@ function v3dBuildScene(c) {
 
     // 매자닌은 프레임/빔 skip (별도 데크 렌더로 대체)
     const _skipFrame = o.type === 'rack-mezzanine';
-    // 랙 프레임 (기둥 4개)
+    // 랙 프레임 (모서리 기둥 4개 + 2파렛트마다 중간 기둥)
+    //   실제 파렛트랙 구조: 파렛트 2개(1베이)마다 프레임 기둥이 하나씩 세워짐
     if (!_skipFrame) {
       const colGeo = new THREE.BoxGeometry(0.16, levelH * levels, 0.16);
+      // 랙 방향 판정 (h > w 세로 랙)
+      const _isVerticalRackFrame = h > w;
+      // 예상 파렛트 수 (자동)
+      const framePalletsAuto = _isVerticalRackFrame
+        ? Math.max(1, Math.round(h / actualSpec.defW))
+        : Math.max(1, Math.round(w / actualSpec.defW));
+      const framePallets = +o.palletsPerLevel || framePalletsAuto;
+      // 중간 기둥 개수: 2파렛트마다 하나 → 파렛트가 N개면 (N/2 - 1) 개의 중간 세로선
+      //   예) 4파렛트 → 중간 1개, 6파렛트 → 중간 2개, 2파렛트 → 중간 0개
+      const midCount = Math.max(0, Math.floor(framePallets / 2) - 1);
+      // 세로 랙: 기둥은 x=±w/2 좌우 두 줄. 중간 기둥은 z축을 따라 삽입
+      // 가로 랙: 기둥은 z=±h/2 앞뒤 두 줄. 중간 기둥은 x축을 따라 삽입
+      const primaryLen = _isVerticalRackFrame ? h : w;
+      const primaryAxis = _isVerticalRackFrame ? 'z' : 'x';
+      // 모서리 4개
       const corners = [[-w/2,-h/2],[w/2,-h/2],[-w/2,h/2],[w/2,h/2]];
       corners.forEach(([cx, cz]) => {
         const col = new THREE.Mesh(colGeo, columnMat);
@@ -20070,6 +20090,23 @@ function v3dBuildScene(c) {
         col.castShadow = true;
         _v3d.rackGroup.add(col);
       });
+      // 중간 기둥
+      for (let m = 1; m <= midCount; m++) {
+        const t01 = m / (midCount + 1); // 균등 분할
+        const midOffset = -primaryLen/2 + primaryLen * t01;
+        // 두 줄 (양쪽 사이드) 각각에 삽입
+        const sides = _isVerticalRackFrame ? [-w/2, w/2] : [-h/2, h/2];
+        sides.forEach(sideOffset => {
+          const col = new THREE.Mesh(colGeo, columnMat);
+          if (_isVerticalRackFrame) {
+            col.position.set(center.x + sideOffset, (levelH * levels)/2, center.z + midOffset);
+          } else {
+            col.position.set(center.x + midOffset, (levelH * levels)/2, center.z + sideOffset);
+          }
+          col.castShadow = true;
+          _v3d.rackGroup.add(col);
+        });
+      }
     }
     // 단(레벨) 빔: 랙 방향의 긴 축을 따라 배치
     const _isVerticalRack = h > w;
@@ -20198,11 +20235,13 @@ function v3dBuildScene(c) {
         deck.position.set(center.x, (f-1) * levelH_m + 0.02, center.z);
         _v3d.rackGroup.add(deck);
       }
-      // 하위 오브젝트: 선반랙(보라 상자) / 평치(청록 얇은 판) / 계단(회색) / 동선(선)
-      const shelfMat  = new THREE.MeshStandardMaterial({ color: 0x7c3aed, roughness: 0.6 });
-      const flatMat   = new THREE.MeshStandardMaterial({ color: 0x0891b2, roughness: 0.7, transparent: true, opacity: 0.75 });
-      const stairsMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.7 });
-      const pathMat   = new THREE.LineBasicMaterial({ color: 0xd97706, linewidth: 2 });
+      // 하위 오브젝트 재질
+      const shelfPostMat  = new THREE.MeshStandardMaterial({ color: 0x5b21b6, roughness: 0.5, metalness: 0.5 }); // 선반랙 기둥 (짙은 보라)
+      const shelfBoardMat = new THREE.MeshStandardMaterial({ color: 0xc4b5fd, roughness: 0.65 });                 // 선반랙 판 (밝은 보라)
+      const flatMat       = new THREE.MeshStandardMaterial({ color: 0x0891b2, roughness: 0.7, transparent: true, opacity: 0.75 });
+      const pathMat       = new THREE.LineBasicMaterial({ color: 0xd97706, linewidth: 2 });
+      const stepMezMat    = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.75 });
+      const stepMezRail   = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.6 });
       o.children.forEach(ch => {
         const floor = +ch.floor || 1;
         const baseY = (floor - 1) * levelH_m + 0.05;
@@ -20219,13 +20258,70 @@ function v3dBuildScene(c) {
         const cd = +ch.h || 0.6;
         const cx = originX + (+ch.x||0) + cw/2;
         const cz = originZ + (+ch.y||0) + cd/2;
-        // 이동계단(stairs)
+        // 🔥 이동계단(stairs) — 실제 스텝 형태
         if (ch.type === 'stairs') {
           const stH = +ch.heightM || 2.5;
-          const geo = new THREE.BoxGeometry(cw, stH, cd);
-          const mesh = new THREE.Mesh(geo, stairsMat);
-          mesh.position.set(cx, baseY + stH/2, cz);
-          _v3d.rackGroup.add(mesh);
+          const stepCount = 8;
+          const stepH = stH / stepCount;
+          const stepD = cd / stepCount;
+          for (let s = 0; s < stepCount; s++) {
+            const step = new THREE.Mesh(new THREE.BoxGeometry(cw, stepH, stepD), stepMezMat);
+            step.position.set(cx, baseY + (s + 0.5) * stepH, cz + cd/2 - stepD/2 - s * stepD);
+            _v3d.rackGroup.add(step);
+          }
+          // 좌우 난간
+          [-cw/2 + 0.05, cw/2 - 0.05].forEach(rx => {
+            const rail = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.8, cd), stepMezRail);
+            rail.position.set(cx + rx, baseY + stH + 0.4, cz);
+            rail.rotation.x = -Math.atan(stH / cd);
+            _v3d.rackGroup.add(rail);
+          });
+          // 계단 라벨
+          if (ch.label) {
+            const cTex = _v3dTextTex(ch.label, '#fef3c7', '#78716c', 192, 60);
+            const cLbl = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 0.42), new THREE.MeshBasicMaterial({ map: cTex, transparent: true }));
+            cLbl.rotation.x = -Math.PI/2;
+            cLbl.position.set(cx, baseY + stH + 0.05, cz);
+            _v3d.rackGroup.add(cLbl);
+          }
+          return;
+        }
+        // 🔥 작업장(workshop) — 바닥 스트라이프 구역 + 라벨만
+        if (ch.type === 'workshop') {
+          // 노랑-주황 대각 스트라이프 캔버스 텍스처
+          const wsCanvas = document.createElement('canvas');
+          wsCanvas.width = 128; wsCanvas.height = 128;
+          const wctx = wsCanvas.getContext('2d');
+          wctx.fillStyle = '#fef3c7'; wctx.fillRect(0, 0, 128, 128);
+          wctx.fillStyle = '#f59e0b';
+          for (let i = -128; i < 256; i += 20) {
+            wctx.save(); wctx.translate(64, 64); wctx.rotate(Math.PI/4); wctx.fillRect(i, -128, 10, 256); wctx.restore();
+          }
+          const wsTex = new THREE.CanvasTexture(wsCanvas);
+          wsTex.wrapS = wsTex.wrapT = THREE.RepeatWrapping;
+          wsTex.repeat.set(Math.max(1, Math.round(cw*0.7)), Math.max(1, Math.round(cd*0.7)));
+          const wsMat = new THREE.MeshStandardMaterial({ map: wsTex, roughness: 0.85, side: THREE.DoubleSide });
+          const wsFloor = new THREE.Mesh(new THREE.PlaneGeometry(cw, cd), wsMat);
+          wsFloor.rotation.x = -Math.PI/2;
+          wsFloor.position.set(cx, baseY + 0.03, cz);
+          _v3d.rackGroup.add(wsFloor);
+          // 테두리 (진한 주황 라인)
+          const edgeMat = new THREE.LineBasicMaterial({ color: 0xb45309, linewidth: 2 });
+          const edgeGeo = new THREE.BufferGeometry().setFromPoints([
+            new THREE.Vector3(cx - cw/2, baseY + 0.04, cz - cd/2),
+            new THREE.Vector3(cx + cw/2, baseY + 0.04, cz - cd/2),
+            new THREE.Vector3(cx + cw/2, baseY + 0.04, cz + cd/2),
+            new THREE.Vector3(cx - cw/2, baseY + 0.04, cz + cd/2),
+            new THREE.Vector3(cx - cw/2, baseY + 0.04, cz - cd/2),
+          ]);
+          _v3d.rackGroup.add(new THREE.Line(edgeGeo, edgeMat));
+          // 라벨: 사용자가 지정한 명칭만 표시 (바닥 위에 부유)
+          const wsLabelText = ch.label || '작업장';
+          const wsTexLbl = _v3dTextTex(`🔨 ${wsLabelText}`, '#fef3c7', '#78350f', 384, 96);
+          const wsLbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(cw*0.8, 2.4), 0.7), new THREE.MeshBasicMaterial({ map: wsTexLbl, transparent: true }));
+          wsLbl.rotation.x = -Math.PI/2;
+          wsLbl.position.set(cx, baseY + 0.06, cz);
+          _v3d.rackGroup.add(wsLbl);
           return;
         }
         const cLevels = +ch.levels || (ch.type === 'flat' ? 1 : 5);
@@ -20238,20 +20334,40 @@ function v3dBuildScene(c) {
           mesh.position.set(cx, baseY + flatH/2, cz);
           _v3d.rackGroup.add(mesh);
         } else {
-          // 선반랙: 다층 박스
+          // 🔥 선반랙: 실제 선반 구조 (4모서리 기둥 + 각 단마다 얇은 판)
+          const totalH = cLevels * cLevelH;
+          // 4모서리 기둥
+          [[-cw/2 + 0.04, -cd/2 + 0.04], [cw/2 - 0.04, -cd/2 + 0.04], [-cw/2 + 0.04, cd/2 - 0.04], [cw/2 - 0.04, cd/2 - 0.04]].forEach(([px, pz]) => {
+            const post = new THREE.Mesh(new THREE.BoxGeometry(0.06, totalH, 0.06), shelfPostMat);
+            post.position.set(cx + px, baseY + totalH/2, cz + pz);
+            _v3d.rackGroup.add(post);
+          });
+          // 각 단마다 얇은 판 + 판 위 살짝 튀어나온 물품 표현
           for (let k = 0; k < cLevels; k++) {
-            const geo = new THREE.BoxGeometry(cw, cLevelH * 0.7, cd);
-            const mesh = new THREE.Mesh(geo, shelfMat);
-            mesh.position.set(cx, baseY + k * cLevelH + cLevelH*0.35, cz);
-            _v3d.rackGroup.add(mesh);
+            const boardY = baseY + k * cLevelH + 0.02;
+            // 판
+            const board = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.05, 0.03, cd - 0.05), shelfBoardMat);
+            board.position.set(cx, boardY, cz);
+            _v3d.rackGroup.add(board);
+            // 물품 (판 위 얇은 상자, 약간 투명)
+            const goods = new THREE.Mesh(
+              new THREE.BoxGeometry(cw - 0.15, cLevelH * 0.55, cd - 0.15),
+              new THREE.MeshStandardMaterial({ color: 0xa78bfa, roughness: 0.6, transparent: true, opacity: 0.72 })
+            );
+            goods.position.set(cx, boardY + cLevelH * 0.3, cz);
+            _v3d.rackGroup.add(goods);
           }
+          // 상판(맨 위)
+          const topBoard = new THREE.Mesh(new THREE.BoxGeometry(cw - 0.05, 0.04, cd - 0.05), shelfPostMat);
+          topBoard.position.set(cx, baseY + totalH, cz);
+          _v3d.rackGroup.add(topBoard);
         }
-        // 하위 오브젝트 라벨
+        // 하위 오브젝트 라벨 (평치·선반랙 공통)
         if (ch.label) {
-          const cTex = _v3dTextTex(ch.label, ch.type === 'flat' ? '#cffafe' : '#f5f3ff', '#0f1220', 128, 40);
-          const cLbl = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 0.5), new THREE.MeshBasicMaterial({ map: cTex, transparent: true }));
+          const cTex = _v3dTextTex(ch.label, ch.type === 'flat' ? '#cffafe' : '#f5f3ff', '#0f1220', 256, 80);
+          const cLbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(cw*0.85, 1.8), 0.55), new THREE.MeshBasicMaterial({ map: cTex, transparent: true }));
           cLbl.rotation.x = -Math.PI/2;
-          cLbl.position.set(cx, baseY + (ch.type==='flat'?0.32:cLevels*cLevelH+0.1), cz);
+          cLbl.position.set(cx, baseY + (ch.type==='flat' ? 0.35 : cLevels*cLevelH + 0.08), cz);
           _v3d.rackGroup.add(cLbl);
         }
       });
@@ -20264,36 +20380,117 @@ function v3dBuildScene(c) {
   const roomMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.8, transparent: true, opacity: 0.55 });
   nonRackObjs.forEach(o => {
     if (o.type === 'dock') {
+      // 🔥 도크 (상하차) — 노랑-검정 스트라이프 바닥 + 셔터 뒷벽 + 크레들 범퍼
       const dw = +o.w || 3;
       const dh = +o.h || 2;
-      const dock = new THREE.Mesh(new THREE.PlaneGeometry(dw, dh), dockMat);
-      dock.rotation.x = -Math.PI/2;
       const p = t(o.x + dw/2, o.y + dh/2);
-      dock.position.set(p.x, 0.05, p.z);
+      // 바닥: 노랑-검정 스트라이프 캔버스 텍스처
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#fbbf24'; ctx.fillRect(0, 0, 128, 128);
+      ctx.fillStyle = '#0f172a';
+      for (let i = -128; i < 256; i += 24) {
+        ctx.save(); ctx.translate(64, 64); ctx.rotate(Math.PI/4); ctx.fillRect(i, -128, 12, 256); ctx.restore();
+      }
+      const dockTex = new THREE.CanvasTexture(canvas);
+      dockTex.wrapS = dockTex.wrapT = THREE.RepeatWrapping;
+      dockTex.repeat.set(Math.max(1, Math.round(dw)), Math.max(1, Math.round(dh)));
+      const dockFloorMat = new THREE.MeshStandardMaterial({ map: dockTex, roughness: 0.85 });
+      const dock = new THREE.Mesh(new THREE.PlaneGeometry(dw, dh), dockFloorMat);
+      dock.rotation.x = -Math.PI/2;
+      dock.position.set(p.x, 0.02, p.z);
       _v3d.buildingGroup.add(dock);
-      const tex = _v3dTextTex(o.label || 'GATE', '#fbbf24', '#0f1220', 256, 64);
-      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(3, 0.8), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      // 셔터 뒷벽 (도크 후면에 컨테이너 문 실루엣)
+      const shutterMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.6, metalness: 0.4 });
+      const shutter = new THREE.Mesh(new THREE.BoxGeometry(dw*0.95, 3.5, 0.12), shutterMat);
+      // dock 방향은 y 축 기준 후방(z + dh/2 쪽)에 세움
+      shutter.position.set(p.x, 1.75, p.z + dh/2 - 0.08);
+      _v3d.buildingGroup.add(shutter);
+      // 셔터 가로 리브 (7줄)
+      const ribMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+      for (let ri = 0; ri < 7; ri++) {
+        const rib = new THREE.Mesh(new THREE.BoxGeometry(dw*0.93, 0.06, 0.14), ribMat);
+        rib.position.set(p.x, 0.4 + ri * 0.45, p.z + dh/2 - 0.05);
+        _v3d.buildingGroup.add(rib);
+      }
+      // 크레들 범퍼 (도크 앞쪽 검정 고무 2개)
+      const bumperMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.9 });
+      [-dw*0.28, dw*0.28].forEach(bx => {
+        const bumper = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.6, 0.2), bumperMat);
+        bumper.position.set(p.x + bx, 1.0, p.z + dh/2 - 0.2);
+        _v3d.buildingGroup.add(bumper);
+      });
+      // 라벨: 도크 번호 (밝고 큼)
+      const dockNum = +o.dockNumber ? `${o.dockNumber}번` : '';
+      const dockLabel = o.label || (dockNum ? `${dockNum} 도크` : 'GATE');
+      const tex = _v3dTextTex(dockLabel, '#fbbf24', '#0f1220', 384, 96);
+      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(dw*0.85, 3.5), 0.9), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
       lbl.rotation.x = -Math.PI/2;
-      lbl.position.set(p.x, 0.06, p.z);
+      lbl.position.set(p.x, 0.05, p.z - dh*0.15); // 셔터 앞쪽에
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'elevator') {
+      // 🔥 화물 엘리베이터 — 샤프트 + 앞면 문 (수직 슬릿) + 상단 지시등 + 발광 라벨
       const w = o.w || 2.5, h = o.h || 2.5;
-      const box = new THREE.Mesh(new THREE.BoxGeometry(w, 4, h), coreMat);
       const p = t(o.x + w/2, o.y + h/2);
-      box.position.set(p.x, 2, p.z);
-      box.castShadow = true;
-      _v3d.buildingGroup.add(box);
-      const tex = _v3dTextTex(o.label || 'EV', '#64748b', '#fff', 128, 64);
-      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.9), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-      lbl.position.set(p.x, 4.3, p.z + h/2 + 0.1);
+      const shaftH = 4.5;
+      // 샤프트 몸체 (짙은 회색)
+      const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.5 });
+      const shaft = new THREE.Mesh(new THREE.BoxGeometry(w, shaftH, h), shaftMat);
+      shaft.position.set(p.x, shaftH/2, p.z);
+      shaft.castShadow = true;
+      _v3d.buildingGroup.add(shaft);
+      // 앞면 문 (밝은 은색)
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.35, metalness: 0.8 });
+      const doorW = w * 0.7, doorH = shaftH * 0.75;
+      const door = new THREE.Mesh(new THREE.BoxGeometry(doorW, doorH, 0.05), doorMat);
+      door.position.set(p.x, doorH/2 + 0.1, p.z - h/2 - 0.03);
+      _v3d.buildingGroup.add(door);
+      // 중앙 슬릿 (문 갈림)
+      const slitMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+      const slit = new THREE.Mesh(new THREE.BoxGeometry(0.05, doorH, 0.08), slitMat);
+      slit.position.set(p.x, doorH/2 + 0.1, p.z - h/2 - 0.06);
+      _v3d.buildingGroup.add(slit);
+      // 상단 지시등 (녹색 발광)
+      const indMat = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.8 });
+      const indicator = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.15, 0.1), indMat);
+      indicator.position.set(p.x, shaftH - 0.35, p.z - h/2 - 0.06);
+      _v3d.buildingGroup.add(indicator);
+      // 라벨 (문 위, 크게, 노랑 배경)
+      const evLabel = o.label || '화물 EV';
+      const tex = _v3dTextTex(evLabel, '#fef3c7', '#b45309', 384, 96);
+      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(w*0.9, 2.5), 0.6), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      lbl.position.set(p.x, doorH + 0.55, p.z - h/2 - 0.08);
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'stairs') {
-      const w = o.w || 3, h = o.h || 4;
-      const box = new THREE.Mesh(new THREE.BoxGeometry(w, 3, h), new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.8 }));
-      const p = t(o.x + w/2, o.y + h/2);
-      box.position.set(p.x, 1.5, p.z);
-      box.castShadow = true;
-      _v3d.buildingGroup.add(box);
+      // 🔥 계단 — 실제 단(step) 형태로 렌더 (박스 하나 대신 계단 단수만큼 계단상승)
+      const w = o.w || 3, dp = o.h || 4;
+      const p = t(o.x + w/2, o.y + dp/2);
+      const stepCount = 10;
+      const totalH = 3.0;
+      const stepH = totalH / stepCount;
+      const stepD = dp / stepCount;
+      const stepMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.75 });
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.5, metalness: 0.6 });
+      for (let s = 0; s < stepCount; s++) {
+        const step = new THREE.Mesh(new THREE.BoxGeometry(w, stepH, stepD), stepMat);
+        step.position.set(p.x, (s + 0.5) * stepH, p.z + dp/2 - stepD/2 - s * stepD);
+        step.castShadow = true;
+        _v3d.buildingGroup.add(step);
+      }
+      // 좌우 난간
+      [-w/2 + 0.06, w/2 - 0.06].forEach(rx => {
+        const rail = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.0, dp), railMat);
+        rail.position.set(p.x + rx, totalH + 0.5, p.z);
+        rail.rotation.x = -Math.atan(totalH / dp);
+        _v3d.buildingGroup.add(rail);
+      });
+      // 라벨
+      const tex = _v3dTextTex(o.label || '계단', '#fef3c7', '#78716c', 256, 80);
+      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      lbl.rotation.x = -Math.PI/2;
+      lbl.position.set(p.x, totalH + 1.5, p.z - dp/2 - 0.6);
+      _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'room') {
       const w = o.w || 6, h = o.h || 4;
       const box = new THREE.Mesh(new THREE.BoxGeometry(w, 3.5, h), roomMat);
@@ -20301,10 +20498,13 @@ function v3dBuildScene(c) {
       box.position.set(p.x, 1.75, p.z);
       box.castShadow = true;
       _v3d.buildingGroup.add(box);
-      const tex = _v3dTextTex(o.label || '실', '#475569', '#fff', 256, 64);
-      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(4, 1), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
-      lbl.position.set(p.x, 3.6, p.z);
-      lbl.rotation.x = -0.3;
+      // 🔥 실 라벨: 정면 벽에 큼직하게 부착 (기울임 대신 정면 부착)
+      const roomLabelText = o.label || '실';
+      const tex = _v3dTextTex(roomLabelText, '#fef3c7', '#0f172a', 512, 128);
+      const labelW = Math.min(w * 0.7, 4.5);
+      const labelH = labelW * 0.28;
+      const lbl = new THREE.Mesh(new THREE.PlaneGeometry(labelW, labelH), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
+      lbl.position.set(p.x, 2.6, p.z - h/2 - 0.05);
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'column') {
       const p = t(o.x, o.y);
