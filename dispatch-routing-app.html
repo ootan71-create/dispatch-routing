@@ -16954,6 +16954,10 @@ window.MANUAL_DATA = {
             { id: 'fp-ev-doorside', title: '🛗 EV 출입구 방향 지정 (신규)', desc: '화물 엘리베이터 편집기에 <b>출입구 방향</b> 필드(도면 아래/위/오른쪽/왼쪽) 추가. 2D 도면에는 문 위치가 굵은 남색 선 + 방향 화살표로 표시되고, 3D 뷰어에서는 해당 방향 면에 문·슬릿·지시등·라벨이 모두 회전 반영되어 배치됩니다.' },
             { id: 'fp-v3d-back', title: '🔄 3D 뷰어에서 2D/3D 도면 관리로 복귀 (신규)', desc: '3D 뷰어(🔥) 좌측 상단에 <b>📐 2D 평면 · 🧊 3D 입체 · 🔥 3D 뷰어</b> 세그먼트 버튼 추가. 3D 뷰어에서 곧바로 2D 도면 관리 화면 또는 3D 입체 화면으로 이동 가능. 현재 화면은 강조 표시됨.' },
             { id: 'fp-esc-tool', title: '⎋ ESC 로 선택 도구 복귀 (신규)', desc: '어떤 도구(파렛트랙·비상문·CCTV 등)를 활성화한 상태에서 <b>ESC</b> 를 누르면 즉시 <b>👆 선택 도구</b> 로 돌아옵니다. 실수로 눌러도 아무 문제 없이 즉시 복귀. 배치 대기 상태에서 도면 클릭 오배치 방지에 유용.' },
+            { id: 'fp-emergency-sign-upright', title: '🚨 비상문 EXIT 사인 항상 정방향 (개선)', desc: '비상문에 회전 각도(°)를 지정해도 상단 <b>초록 EXIT 사인은 회전을 상쇄해 항상 수평·정방향</b>으로 표시됩니다. 벽 방향에 맞춰 문을 90°/45° 회전해도 사인은 계속 읽히는 자세를 유지.' },
+            { id: 'v3d-facility-real', title: '🏭 3D 뷰어 시설 실사화 (개선)', desc: '<ul><li><b>매자닌 데크</b>: 초록 반투명 판 → <b>스틸 그레이 데크</b>(두께 있는 박스) + 하부 H형 지지 빔 + 4변 노랑 안전 <b>난간</b>(수직 포스트 + 2단 파이프) + 바닥→상층 관통 <b>지지 기둥</b> 격자.</li><li><b>콘크리트 기둥</b>: 단순 회색 박스 → <b>하부 받침대(footing)</b> + 좁혀지는 <b>테이퍼링</b> + 굵은 콘크리트 <b>몸통</b> + 역사다리꼴 <b>상단 지지 헤드</b>. 그림자·질감까지 실물감.</li><li><b>도크장</b>: 노랑-검정 스트라이프 바닥 + <b>노랑 도크 레벨러</b>(경사판) + <b>검정 도크 씰</b>(상부·좌우 프레임) + 셔터 위 <b>상부 캐노피 지붕</b>(브래킷 2개 지지). 실제 물류센터 도크 구조 반영.</li></ul>' },
+            { id: 'v3d-walk-look-move', title: '🎯 워크스루 시선-이동 정확 반영 (수정)', desc: '1인칭 워크스루에서 W/↑ 이동이 <b>THREE.js 카메라의 실제 시선 벡터</b>를 사용해 계산됩니다. 마우스로 위/아래로 시선을 돌리면 그 방향 그대로 이동. 계산은 카메라 회전 갱신 → getWorldDirection() → 이동 벡터 순으로 처리되어 어떤 각도 조합에서도 오차 없이 시선과 이동 방향이 일치합니다.' },
+            { id: 'v3d-ui-refresh', title: '🎨 3D 뷰어 사이드 패널 리디자인 (개선)', desc: '우측 패널을 300px → 340px 로 넓혀 헤더 문구가 <b>줄바꿈되지 않도록</b> nowrap 적용. 각 카드에 <b>상단 색상 액센트 바</b>(빨강/초록/노랑/오렌지) + 그라디언트 배경 + 볼드 헤더 + 넓은 shadow 로 카드 위계 명확화. KPI/ABC/모드 탭 모두 <b>화이트-스페이스 넉넉히 확보 + 폰트 웨이트 800/900</b> 로 가독성 강화. 스크롤바도 얇게 정리.' },
             { id: 'v-i-5', title: '📥 CSV 내보내기', desc: '전체 로케이션의 등급·피킹·출고량·도크거리·골든존 데이터를 엑셀 호환 CSV로 다운로드.' },
           ]},
           { id: 'v-panel', title: '📋 사이드 패널 통합', items: [
@@ -17960,19 +17964,21 @@ function renderFloorplanObject(o, PAD, SCALE) {
         edArc = `<path d="M ${edHingeX + edW} ${edH/2} A ${edW} ${edW} 0 0 0 ${ex} ${ey}" fill="none" stroke="#16a34a" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>`;
       }
     }
-    // 🔥 EXIT 발광 사인 (개구부 위)
+    // 🔥 EXIT 발광 사인 — 그룹의 회전(edRot)을 카운터 회전으로 상쇄해서 항상 수평 유지
+    //   사인은 문 중앙 위쪽에 위치. 회전 후에도 사람이 읽을 수 있는 방향으로 표시.
     const signW = Math.max(edW * 0.75, 26);
     const signH = 14;
-    const signX = (edW - signW) / 2;
-    const signY = -signH - 4;
-    const emergencySign = `<g>
-      <!-- 발광 후광 (넓은 옅은 초록) -->
+    const signX = -signW / 2;   // 사인 로컬 원점 기준 중앙 배치
+    const signY = -signH / 2;
+    // 회전 상쇄: 부모 그룹이 edRot 만큼 돌아가므로 여기서 -edRot 만큼 되돌림
+    const emergencySign = `<g transform="translate(${edW/2} ${-14}) rotate(${-edRot})">
+      <!-- 발광 후광 -->
       <rect x="${signX - 4}" y="${signY - 4}" width="${signW + 8}" height="${signH + 8}" rx="3" fill="#22c55e" opacity="0.28"/>
       <rect x="${signX - 2}" y="${signY - 2}" width="${signW + 4}" height="${signH + 4}" rx="2.5" fill="#22c55e" opacity="0.35"/>
       <!-- 사인 몸체 -->
       <rect x="${signX}" y="${signY}" width="${signW}" height="${signH}" rx="2" fill="#16a34a" stroke="#166534" stroke-width="0.8"/>
       <!-- EXIT 텍스트 -->
-      <text x="${signX + signW/2}" y="${signY + signH/2 + 4}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Arial, sans-serif" letter-spacing="1">EXIT</text>
+      <text x="0" y="${signY + signH/2 + 4}" text-anchor="middle" font-size="10" font-weight="800" fill="#fff" font-family="Arial, sans-serif" letter-spacing="1">EXIT</text>
     </g>`;
     const cxED = x, cyED = y;
     return `<g class="floorplan-obj ${isSelected?'selected':''}" data-obj-id="${o.id}"
@@ -19913,113 +19919,124 @@ function renderCenter3DViewer(c) {
           style="padding:8px 14px; background:rgba(25,28,50,0.94); color:#fff; border:1px solid #252943; border-radius:8px; cursor:pointer; font-size:11px; font-weight:600;">📋 패널 접기</button>
       </div>
 
-      <!-- 우측 사이드 패널 (헤더 + 설정 + Top5 + 정보 통합) -->
-      <div id="v3dRightSidebar" style="position:absolute; top:12px; right:12px; bottom:12px; width:300px; display:flex; flex-direction:column; gap:8px; overflow-y:auto; overflow-x:hidden; padding-right:2px; z-index:50;">
-      <div class="v3d-panel v3d-header" style="padding:14px 16px; background:rgba(25,28,50,0.94); backdrop-filter:blur(10px); border-radius:10px; border-left:4px solid #ef4444; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif;">
-        <div style="font-size:16px; color:#ef4444; margin-bottom:2px; font-weight:700;">🔥 ${c.name} 3D 히트맵</div>
-        <div style="font-size:11px; color:#9ca3af; margin-bottom:10px;">${c.floorplan.width}m × ${c.floorplan.height}m · 랙 ${totalRacks}개 · 도면 실측 기반 ABC 분석</div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:5px; background:#0f1220; padding:7px; border-radius:6px; margin-bottom:10px; font-size:11px;">
-          <div><span style="color:#9ca3af;">건물</span> <b style="color:#ffa94d;">${c.floorplan.width}×${c.floorplan.height}m</b></div>
-          <div><span style="color:#9ca3af;">랙</span> <b style="color:#ffa94d;">${totalRacks}개</b></div>
-          <div><span style="color:#9ca3af;">CBM</span> <b style="color:#ffa94d;">${(+c.capacity_cbm||0).toLocaleString()}</b></div>
-          <div><span style="color:#9ca3af;">면적</span> <b style="color:#ffa94d;">${(+c.area_pyeong||0).toLocaleString()}평</b></div>
+      <!-- 우측 사이드 패널 — 리디자인: 컴팩트한 폭 + 문단 흐름 방지 -->
+      <div id="v3dRightSidebar" style="position:absolute; top:12px; right:12px; bottom:12px; width:340px; display:flex; flex-direction:column; gap:10px; overflow-y:auto; overflow-x:hidden; padding-right:4px; z-index:50; scrollbar-width:thin;">
+      <div class="v3d-panel v3d-header" style="padding:16px 18px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; border-top:2px solid #ef4444; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <!-- 헤더: 한 줄 유지 (nowrap) + 타이틀·부제 분리 -->
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px; white-space:nowrap; overflow:hidden;">
+          <span style="font-size:18px; line-height:1;">🔥</span>
+          <span style="font-size:14.5px; color:#f8fafc; font-weight:800; letter-spacing:-0.3px; overflow:hidden; text-overflow:ellipsis;">${c.name}</span>
+          <span style="font-size:10px; color:#ef4444; font-weight:700; padding:2px 6px; background:rgba(239,68,68,0.15); border-radius:3px; margin-left:auto;">3D 히트맵</span>
+        </div>
+        <div style="font-size:10.5px; color:#94a3b8; margin-bottom:12px; letter-spacing:-0.2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+          ${c.floorplan.width}m × ${c.floorplan.height}m · 랙 ${totalRacks}개 · ABC 분석
         </div>
 
-        <!-- 모드 탭 -->
-        <div style="display:flex; gap:3px; background:#0f1220; border-radius:8px; padding:3px; margin-bottom:10px;">
-          <button class="v3d-mode-tab active" data-mode="pick"  onclick="v3dSetMode('pick')"  style="flex:1; padding:7px; background:#ef4444; color:white; border:none; border-radius:5px; font-size:11px; cursor:pointer; font-weight:700;">🌡️ 피킹</button>
-          <button class="v3d-mode-tab"        data-mode="qty"   onclick="v3dSetMode('qty')"   style="flex:1; padding:7px; background:transparent; color:#9ca3af; border:none; border-radius:5px; font-size:11px; cursor:pointer;">📦 출고량</button>
-          <button class="v3d-mode-tab"        data-mode="abc"   onclick="v3dSetMode('abc')"   style="flex:1; padding:7px; background:transparent; color:#9ca3af; border:none; border-radius:5px; font-size:11px; cursor:pointer;">🏷️ ABC</button>
-          <button class="v3d-mode-tab"        data-mode="util"  onclick="v3dSetMode('util')"  style="flex:1; padding:7px; background:transparent; color:#9ca3af; border:none; border-radius:5px; font-size:11px; cursor:pointer;">📊 적재율</button>
-        </div>
-
-        <!-- ABC 통계 -->
-        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:10px;">
-          <div style="background:#0f1220; padding:7px; border-radius:5px; text-align:center;">
-            <div style="font-size:16px; font-weight:700; color:#ef4444;">A</div>
-            <div style="font-size:10px; color:#9ca3af;" id="v3dPctA">20%</div>
-            <div style="font-size:11px; color:#e8eaf0;" id="v3dCntA">-</div>
+        <!-- 요약 KPI 4개 (한 줄 유지) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px; margin-bottom:11px;">
+          <div style="background:rgba(15,18,32,0.6); padding:8px 10px; border-radius:7px; border-left:2px solid #f59e0b;">
+            <div style="font-size:9.5px; color:#94a3b8; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px;">건물</div>
+            <div style="font-size:12.5px; color:#fbbf24; font-weight:800; white-space:nowrap;">${c.floorplan.width}×${c.floorplan.height}m</div>
           </div>
-          <div style="background:#0f1220; padding:7px; border-radius:5px; text-align:center;">
-            <div style="font-size:16px; font-weight:700; color:#f59e0b;">B</div>
-            <div style="font-size:10px; color:#9ca3af;" id="v3dPctB">30%</div>
-            <div style="font-size:11px; color:#e8eaf0;" id="v3dCntB">-</div>
+          <div style="background:rgba(15,18,32,0.6); padding:8px 10px; border-radius:7px; border-left:2px solid #f59e0b;">
+            <div style="font-size:9.5px; color:#94a3b8; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px;">랙</div>
+            <div style="font-size:12.5px; color:#fbbf24; font-weight:800; white-space:nowrap;">${totalRacks}개</div>
           </div>
-          <div style="background:#0f1220; padding:7px; border-radius:5px; text-align:center;">
-            <div style="font-size:16px; font-weight:700; color:#3b82f6;">C</div>
-            <div style="font-size:10px; color:#9ca3af;" id="v3dPctC">50%</div>
-            <div style="font-size:11px; color:#e8eaf0;" id="v3dCntC">-</div>
+          <div style="background:rgba(15,18,32,0.6); padding:8px 10px; border-radius:7px; border-left:2px solid #f59e0b;">
+            <div style="font-size:9.5px; color:#94a3b8; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px;">CBM</div>
+            <div style="font-size:12.5px; color:#fbbf24; font-weight:800; white-space:nowrap;">${(+c.capacity_cbm||0).toLocaleString()}</div>
+          </div>
+          <div style="background:rgba(15,18,32,0.6); padding:8px 10px; border-radius:7px; border-left:2px solid #f59e0b;">
+            <div style="font-size:9.5px; color:#94a3b8; margin-bottom:2px; text-transform:uppercase; letter-spacing:0.4px;">면적</div>
+            <div style="font-size:12.5px; color:#fbbf24; font-weight:800; white-space:nowrap;">${(+c.area_pyeong||0).toLocaleString()}평</div>
           </div>
         </div>
 
-        <!-- 레전드 -->
-        <div style="background:#0f1220; padding:9px 11px; border-radius:7px; margin-bottom:9px;">
-          <div id="v3dGradientTitle" style="font-size:11px; color:#ffa94d; font-weight:700; margin-bottom:6px;">🌡️ 피킹 건수</div>
-          <div style="height:12px; border-radius:3px; background:linear-gradient(90deg, #1e40af, #3b82f6, #10b981, #f59e0b, #ef4444); margin-bottom:3px;"></div>
-          <div style="display:flex; justify-content:space-between; font-size:10px; color:#9ca3af;">
+        <!-- 모드 탭 (한 줄 유지) -->
+        <div style="display:flex; gap:2px; background:rgba(15,18,32,0.7); border-radius:8px; padding:3px; margin-bottom:11px;">
+          <button class="v3d-mode-tab active" data-mode="pick"  onclick="v3dSetMode('pick')"  style="flex:1; padding:8px 4px; background:#ef4444; color:white; border:none; border-radius:6px; font-size:10.5px; cursor:pointer; font-weight:700; white-space:nowrap; letter-spacing:-0.2px;">🌡️ 피킹</button>
+          <button class="v3d-mode-tab"        data-mode="qty"   onclick="v3dSetMode('qty')"   style="flex:1; padding:8px 4px; background:transparent; color:#94a3b8; border:none; border-radius:6px; font-size:10.5px; cursor:pointer; font-weight:600; white-space:nowrap; letter-spacing:-0.2px;">📦 출고</button>
+          <button class="v3d-mode-tab"        data-mode="abc"   onclick="v3dSetMode('abc')"   style="flex:1; padding:8px 4px; background:transparent; color:#94a3b8; border:none; border-radius:6px; font-size:10.5px; cursor:pointer; font-weight:600; white-space:nowrap; letter-spacing:-0.2px;">🏷️ ABC</button>
+          <button class="v3d-mode-tab"        data-mode="util"  onclick="v3dSetMode('util')"  style="flex:1; padding:8px 4px; background:transparent; color:#94a3b8; border:none; border-radius:6px; font-size:10.5px; cursor:pointer; font-weight:600; white-space:nowrap; letter-spacing:-0.2px;">📊 적재</button>
+        </div>
+
+        <!-- ABC 통계 (한 줄 유지) -->
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:5px; margin-bottom:11px;">
+          <div style="background:rgba(239,68,68,0.08); padding:9px 6px; border-radius:7px; text-align:center; border:1px solid rgba(239,68,68,0.25);">
+            <div style="font-size:16px; font-weight:900; color:#ef4444; line-height:1;">A</div>
+            <div style="font-size:9.5px; color:#94a3b8; margin-top:3px; font-weight:600;" id="v3dPctA">20%</div>
+            <div style="font-size:11px; color:#f8fafc; font-weight:700; margin-top:2px;" id="v3dCntA">-</div>
+          </div>
+          <div style="background:rgba(245,158,11,0.08); padding:9px 6px; border-radius:7px; text-align:center; border:1px solid rgba(245,158,11,0.25);">
+            <div style="font-size:16px; font-weight:900; color:#f59e0b; line-height:1;">B</div>
+            <div style="font-size:9.5px; color:#94a3b8; margin-top:3px; font-weight:600;" id="v3dPctB">30%</div>
+            <div style="font-size:11px; color:#f8fafc; font-weight:700; margin-top:2px;" id="v3dCntB">-</div>
+          </div>
+          <div style="background:rgba(59,130,246,0.08); padding:9px 6px; border-radius:7px; text-align:center; border:1px solid rgba(59,130,246,0.25);">
+            <div style="font-size:16px; font-weight:900; color:#3b82f6; line-height:1;">C</div>
+            <div style="font-size:9.5px; color:#94a3b8; margin-top:3px; font-weight:600;" id="v3dPctC">50%</div>
+            <div style="font-size:11px; color:#f8fafc; font-weight:700; margin-top:2px;" id="v3dCntC">-</div>
+          </div>
+        </div>
+
+        <!-- 히트맵 레전드 -->
+        <div style="background:rgba(15,18,32,0.7); padding:10px 12px; border-radius:8px; margin-bottom:10px;">
+          <div id="v3dGradientTitle" style="font-size:10.5px; color:#fbbf24; font-weight:700; margin-bottom:7px; letter-spacing:-0.2px;">🌡️ 피킹 건수</div>
+          <div style="height:10px; border-radius:5px; background:linear-gradient(90deg, #1e40af, #3b82f6, #10b981, #f59e0b, #ef4444); margin-bottom:4px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.06);"></div>
+          <div style="display:flex; justify-content:space-between; font-size:9.5px; color:#94a3b8; font-weight:600;">
             <span>Cold</span><span id="v3dGradMid">중간</span><span id="v3dGradMax">Hot</span>
           </div>
         </div>
 
-        <!-- 인사이트 -->
-        <div style="background:#0f1220; padding:9px 11px; border-radius:7px; font-size:11px; color:#9ca3af; line-height:1.5;">
-          💡 <b style="color:#10b981;">골든존</b>: 도크 인접 + 하단 1~2단이 최적. A등급 집중 배치 시 피킹 동선 30% 절감.
+        <!-- 인사이트 (컴팩트) -->
+        <div style="background:rgba(16,185,129,0.08); padding:10px 12px; border-radius:8px; font-size:10.5px; color:#cbd5e1; line-height:1.55; border-left:2px solid #10b981;">
+          💡 <b style="color:#34d399;">골든존</b>: 도크 인접 + 하단 1~2단 최적. A등급 집중 시 피킹 동선 <b style="color:#34d399;">30% 절감</b>.
         </div>
       </div>
 
-      <!-- 우측 사이드바 내: 분석 설정 -->
-      <div class="v3d-panel v3d-control" style="padding:14px 16px; background:rgba(25,28,50,0.94); backdrop-filter:blur(10px); border-radius:10px; border-left:4px solid #10b981; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif;">
-        <div style="font-size:14px; color:#10b981; margin-bottom:10px; font-weight:700;">⚙️ 분석 설정</div>
+      <!-- 분석 설정 -->
+      <div class="v3d-panel v3d-control" style="padding:16px 18px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; border-top:2px solid #10b981; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+          <span style="font-size:15px;">⚙️</span>
+          <span style="font-size:13px; color:#34d399; font-weight:800; letter-spacing:-0.3px;">분석 설정</span>
+        </div>
+        ${['period','A','B','seed'].map(k => {
+          const label = k==='period' ? '분석 기간 (일)' : k==='A' ? 'A등급 기준 (%)' : k==='B' ? 'B등급 기준 (%)' : '데이터 시드 (재현성)';
+          const min = k==='period'?7:k==='A'?10:k==='B'?20:1;
+          const max = k==='period'?90:k==='A'?30:k==='B'?50:200;
+          const def = k==='period'?30:k==='A'?20:k==='B'?30:42;
+          return `<div style="margin-bottom:10px;">
+            <div style="display:flex; justify-content:space-between; font-size:10.5px; color:#94a3b8; margin-bottom:5px; font-weight:600; white-space:nowrap;">
+              <span>${label}</span><b id="v3dLbl${k.charAt(0).toUpperCase()+k.slice(1)}" style="color:#f8fafc; font-weight:800; font-size:11.5px;">${def}</b>
+            </div>
+            <input type="range" min="${min}" max="${max}" value="${def}" id="v3dIn${k.charAt(0).toUpperCase()+k.slice(1)}" style="width:100%; accent-color:#ef4444; height:4px;">
+          </div>`;
+        }).join('')}
 
-        <div style="margin-bottom:9px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; margin-bottom:3px;">
-            <span>분석 기간 (일)</span><b id="v3dLblPeriod" style="color:white;">30</b>
-          </div>
-          <input type="range" min="7" max="90" value="30" id="v3dInPeriod" style="width:100%; accent-color:#ef4444;">
+        <div style="display:flex; gap:6px; margin-top:12px;">
+          <button onclick="v3dRebuild()" style="flex:1; background:linear-gradient(135deg,#ef4444,#dc2626); color:white; border:none; padding:9px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700; letter-spacing:-0.2px; box-shadow:0 3px 8px rgba(239,68,68,0.35);">🔄 재분석</button>
+          <button onclick="v3dExportCSV()" style="flex:1; background:rgba(37,41,67,0.9); color:#f8fafc; border:1px solid #3f4463; padding:9px; border-radius:7px; cursor:pointer; font-size:11.5px; font-weight:700;">📥 CSV</button>
         </div>
-        <div style="margin-bottom:9px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; margin-bottom:3px;">
-            <span>A등급 기준 (%)</span><b id="v3dLblA" style="color:white;">20</b>
-          </div>
-          <input type="range" min="10" max="30" value="20" id="v3dInA" style="width:100%; accent-color:#ef4444;">
-        </div>
-        <div style="margin-bottom:9px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; margin-bottom:3px;">
-            <span>B등급 기준 (%)</span><b id="v3dLblB" style="color:white;">30</b>
-          </div>
-          <input type="range" min="20" max="50" value="30" id="v3dInB" style="width:100%; accent-color:#ef4444;">
-        </div>
-        <div style="margin-bottom:9px;">
-          <div style="display:flex; justify-content:space-between; font-size:11px; color:#9ca3af; margin-bottom:3px;">
-            <span>데이터 시드 (재현성)</span><b id="v3dLblSeed" style="color:white;">42</b>
-          </div>
-          <input type="range" min="1" max="200" value="42" id="v3dInSeed" style="width:100%; accent-color:#ef4444;">
-        </div>
-
-        <div style="display:flex; gap:6px; margin-top:10px;">
-          <button onclick="v3dRebuild()" style="flex:1; background:#ef4444; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700;">🔄 재분석</button>
-          <button onclick="v3dExportCSV()" style="flex:1; background:#252943; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:12px; font-weight:700;">📥 CSV</button>
-        </div>
-        <button onclick="switchCenterSubTab('floorplan')" style="width:100%; margin-top:6px; background:#4338ca; color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:600;">🏗️ 도면 편집으로 이동</button>
+        <button onclick="switchCenterSubTab('floorplan')" style="width:100%; margin-top:7px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; border:none; padding:9px; border-radius:7px; cursor:pointer; font-size:10.5px; font-weight:700; letter-spacing:-0.2px; box-shadow:0 3px 8px rgba(99,102,241,0.35);">🏗️ 도면 편집으로 이동</button>
       </div>
 
-      <!-- Top 5 핫스팟 (사이드바 내) -->
-      <div class="v3d-panel v3d-toplist" style="padding:10px 14px; background:rgba(25,28,50,0.94); backdrop-filter:blur(10px); border-radius:9px; font-size:11px; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif;">
-        <div style="color:#ffa94d; font-weight:700; margin-bottom:5px;">🏆 Top 5 핫스팟</div>
+      <!-- Top 5 핫스팟 -->
+      <div class="v3d-panel v3d-toplist" style="padding:14px 16px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; font-size:11px; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; border-top:2px solid #fbbf24; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <div style="display:flex; align-items:center; gap:6px; margin-bottom:8px;">
+          <span style="font-size:14px;">🏆</span>
+          <span style="font-size:12.5px; color:#fbbf24; font-weight:800; letter-spacing:-0.3px;">Top 5 핫스팟</span>
+        </div>
         <div id="v3dTopList"></div>
       </div>
 
-      <!-- 선택 상세 (사이드바 내 · 숨김 상태로 시작) -->
-      <div class="v3d-panel v3d-info" id="v3dInfoPanel" style="padding:12px 16px; background:rgba(25,28,50,0.94); backdrop-filter:blur(10px); border-radius:9px; display:none; border-left:4px solid #f59e0b; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif;">
-        <h3 id="v3dInfoTitle" style="color:#ffa94d; font-size:13px; margin-bottom:6px;">로케이션</h3>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #252943;"><span style="color:#9ca3af;">로케이션</span><span id="v3dInfoLoc">-</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #252943;"><span style="color:#9ca3af;">등급</span><span id="v3dInfoGrade">-</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #252943;"><span style="color:#9ca3af;">피킹 건수</span><span id="v3dInfoPick">-</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #252943;"><span style="color:#9ca3af;">출고량</span><span id="v3dInfoQty">-</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0; border-bottom:1px solid #252943;"><span style="color:#9ca3af;">도크 거리</span><span id="v3dInfoDist">-</span></div>
-        <div style="display:flex; justify-content:space-between; font-size:11px; padding:3px 0;"><span style="color:#9ca3af;">골든존</span><span id="v3dInfoGolden">-</span></div>
-        <button onclick="v3dEditSelectedRack()" style="width:100%; margin-top:8px; background:#4338ca; color:white; border:none; padding:6px; border-radius:5px; cursor:pointer; font-size:11px; font-weight:600;">✏️ 이 랙 편집하기</button>
+      <!-- 선택 상세 -->
+      <div class="v3d-panel v3d-info" id="v3dInfoPanel" style="padding:14px 16px; background:linear-gradient(180deg, rgba(30,33,58,0.98), rgba(20,23,42,0.98)); backdrop-filter:blur(14px); border-radius:12px; display:none; border-top:2px solid #f59e0b; color:#e8eaf0; font-family:'Pretendard Variable', -apple-system, sans-serif; box-shadow:0 8px 24px rgba(0,0,0,0.4);">
+        <h3 id="v3dInfoTitle" style="color:#fbbf24; font-size:12.5px; margin-bottom:9px; font-weight:800; letter-spacing:-0.3px;">📌 로케이션</h3>
+        ${['로케이션::v3dInfoLoc','등급::v3dInfoGrade','피킹 건수::v3dInfoPick','출고량::v3dInfoQty','도크 거리::v3dInfoDist','골든존::v3dInfoGolden'].map((row,i,arr) => {
+          const [k,id] = row.split('::');
+          return `<div style="display:flex; justify-content:space-between; font-size:11px; padding:6px 0; ${i<arr.length-1?'border-bottom:1px solid rgba(148,163,184,0.15);':''} white-space:nowrap;"><span style="color:#94a3b8; font-weight:600;">${k}</span><span id="${id}" style="color:#f8fafc; font-weight:700; text-align:right;">-</span></div>`;
+        }).join('')}
+        <button onclick="v3dEditSelectedRack()" style="width:100%; margin-top:10px; background:linear-gradient(135deg,#6366f1,#4f46e5); color:white; border:none; padding:8px; border-radius:6px; cursor:pointer; font-size:11px; font-weight:700; box-shadow:0 3px 8px rgba(99,102,241,0.35);">✏️ 이 랙 편집하기</button>
       </div>
       </div><!-- /v3dRightSidebar -->
 
@@ -20449,13 +20466,76 @@ function v3dBuildScene(c) {
       const bw = +o.w || 6, bd = +o.h || 6;
       const originX = center.x - bw/2;
       const originZ = center.z - bd/2;
-      // 층별 반투명 데크(바닥판)
-      const deckMat = new THREE.MeshStandardMaterial({ color: 0x86efac, roughness: 0.7, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+      // 🔥 매자닌 데크 실사화 — 밝은 회색 스틸 데크 + 지지 빔 + 난간 + 지주
+      // 데크: 색이 밝은 스틸 그레이 (기존 초록에서 변경)
+      const deckMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, roughness: 0.55, metalness: 0.35, side: THREE.DoubleSide });
+      // 바닥면 격자 텍스처
+      const deckBeamMat = new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.55, metalness: 0.5 });
+      const railMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.4, metalness: 0.6 });
+      const supportColMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.55, metalness: 0.7 });
       for (let f = 1; f <= mezLevels; f++) {
-        const deck = new THREE.Mesh(new THREE.PlaneGeometry(bw, bd), deckMat);
-        deck.rotation.x = -Math.PI/2;
-        deck.position.set(center.x, (f-1) * levelH_m + 0.02, center.z);
+        const deckY = (f - 1) * levelH_m + 0.02;
+        // 데크 판 (두께 있는 박스로 표현)
+        const deck = new THREE.Mesh(new THREE.BoxGeometry(bw, 0.12, bd), deckMat);
+        deck.position.set(center.x, deckY, center.z);
+        deck.receiveShadow = true;
         _v3d.rackGroup.add(deck);
+        // 데크 하단 지지 빔 (H형 빔 시뮬 — 앞뒤 방향)
+        if (f > 1) {
+          const beamSpacing = Math.max(2, bw / 5);
+          for (let bi = -bw/2 + beamSpacing/2; bi < bw/2; bi += beamSpacing) {
+            const beam = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.35, bd), deckBeamMat);
+            beam.position.set(center.x + bi, deckY - 0.24, center.z);
+            _v3d.rackGroup.add(beam);
+          }
+        }
+        // 난간 (2층 이상에만 · 안전 노랑)
+        if (f > 1) {
+          const railH = 1.1;
+          // 4변에 얇은 상단 파이프 + 중단 파이프
+          [
+            { p1: [center.x - bw/2, center.z - bd/2], p2: [center.x + bw/2, center.z - bd/2] },
+            { p1: [center.x + bw/2, center.z - bd/2], p2: [center.x + bw/2, center.z + bd/2] },
+            { p1: [center.x - bw/2, center.z + bd/2], p2: [center.x + bw/2, center.z + bd/2] },
+            { p1: [center.x - bw/2, center.z - bd/2], p2: [center.x - bw/2, center.z + bd/2] },
+          ].forEach(edge => {
+            const dx_ = edge.p2[0] - edge.p1[0];
+            const dz_ = edge.p2[1] - edge.p1[1];
+            const len = Math.hypot(dx_, dz_);
+            const midX = (edge.p1[0] + edge.p2[0]) / 2;
+            const midZ = (edge.p1[1] + edge.p2[1]) / 2;
+            const rot = Math.atan2(dz_, dx_);
+            // 상단 파이프 (0.08m 지름)
+            [0.55, 1.05].forEach(rY => {
+              const rail = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.045, len, 8), railMat);
+              rail.rotation.z = Math.PI/2;
+              rail.rotation.y = -rot;
+              rail.position.set(midX, deckY + rY, midZ);
+              _v3d.rackGroup.add(rail);
+            });
+            // 지지 포스트 (모서리 근처 여러 개)
+            const postCount = Math.max(2, Math.floor(len / 2.5));
+            for (let pi = 0; pi <= postCount; pi++) {
+              const tp = pi / postCount;
+              const px = edge.p1[0] + dx_ * tp;
+              const pz = edge.p1[1] + dz_ * tp;
+              const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, railH, 8), railMat);
+              post.position.set(px, deckY + railH/2, pz);
+              _v3d.rackGroup.add(post);
+            }
+          });
+        }
+      }
+      // 매자닌 전체 지지 기둥 (바닥 → 최상층까지)
+      const totalH = mezLevels * levelH_m;
+      const supportSpacing = Math.max(3, Math.min(bw, bd) / 3);
+      for (let sx = -bw/2 + supportSpacing; sx < bw/2; sx += supportSpacing) {
+        for (let sz = -bd/2 + supportSpacing; sz < bd/2; sz += supportSpacing) {
+          const supCol = new THREE.Mesh(new THREE.BoxGeometry(0.2, totalH, 0.2), supportColMat);
+          supCol.position.set(center.x + sx, totalH/2, center.z + sz);
+          supCol.castShadow = true;
+          _v3d.rackGroup.add(supCol);
+        }
       }
       // 하위 오브젝트 재질
       const shelfPostMat  = new THREE.MeshStandardMaterial({ color: 0x5b21b6, roughness: 0.5, metalness: 0.5 }); // 선반랙 기둥 (짙은 보라)
@@ -20645,13 +20725,43 @@ function v3dBuildScene(c) {
         bumper.position.set(p.x + bx, 1.0, p.z + dh/2 - 0.2);
         _v3d.buildingGroup.add(bumper);
       });
-      // 라벨: 도크 번호 (밝고 큼)
+      // 🔥 도크 레벨러 (셔터 앞 노랑 경사판)
+      const levelerMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, roughness: 0.5, metalness: 0.4 });
+      const leveler = new THREE.Mesh(new THREE.BoxGeometry(dw*0.85, 0.08, dh*0.35), levelerMat);
+      leveler.rotation.x = -0.12; // 살짝 기울어짐
+      leveler.position.set(p.x, 0.15, p.z + dh*0.05);
+      _v3d.buildingGroup.add(leveler);
+      // 🔥 도크 씰(문 주변 검정 고무 프레임)
+      const sealMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.95 });
+      // 상부 씰
+      const sealTop = new THREE.Mesh(new THREE.BoxGeometry(dw, 0.18, 0.18), sealMat);
+      sealTop.position.set(p.x, 3.55, p.z + dh/2 - 0.02);
+      _v3d.buildingGroup.add(sealTop);
+      // 좌우 씰
+      [-dw/2 + 0.09, dw/2 - 0.09].forEach(sx => {
+        const sealSide = new THREE.Mesh(new THREE.BoxGeometry(0.18, 3.5, 0.18), sealMat);
+        sealSide.position.set(p.x + sx, 1.75, p.z + dh/2 - 0.02);
+        _v3d.buildingGroup.add(sealSide);
+      });
+      // 🔥 상부 캐노피 지붕 (셔터 위 파형 지붕 근사)
+      const canopyMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.7, metalness: 0.35 });
+      const canopy = new THREE.Mesh(new THREE.BoxGeometry(dw + 0.8, 0.15, dh*0.6), canopyMat);
+      canopy.position.set(p.x, 4.1, p.z + dh/2 - dh*0.2);
+      canopy.castShadow = true;
+      _v3d.buildingGroup.add(canopy);
+      // 캐노피 하단 지지 브래킷 (좌우 2개)
+      [-dw/2, dw/2].forEach(bx => {
+        const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.55, 0.3), canopyMat);
+        bracket.position.set(p.x + bx, 3.85, p.z + dh/2 - 0.15);
+        _v3d.buildingGroup.add(bracket);
+      });
+      // 라벨: 도크 번호
       const dockNum = +o.dockNumber ? `${o.dockNumber}번` : '';
       const dockLabel = o.label || (dockNum ? `${dockNum} 도크` : 'GATE');
       const tex = _v3dTextTex(dockLabel, '#fbbf24', '#0f1220', 384, 96);
       const lbl = new THREE.Mesh(new THREE.PlaneGeometry(Math.min(dw*0.85, 3.5), 0.9), new THREE.MeshBasicMaterial({ map: tex, transparent: true }));
       lbl.rotation.x = -Math.PI/2;
-      lbl.position.set(p.x, 0.05, p.z - dh*0.15); // 셔터 앞쪽에
+      lbl.position.set(p.x, 0.05, p.z - dh*0.25);
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'elevator') {
       // 🔥 화물 엘리베이터 — 샤프트 + 방향 선택 가능한 앞면 문 + 상단 지시등 + 라벨
@@ -20828,10 +20938,34 @@ function v3dBuildScene(c) {
       lbl.position.set(p.x, 2.6, p.z - h/2 - 0.05);
       _v3d.buildingGroup.add(lbl);
     } else if (o.type === 'column') {
+      // 🔥 콘크리트 기둥 — 하부 경사 받침대(footing) + 굵은 몸통 + 상단 지지 헤드
       const p = t(o.x, o.y);
-      const col = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 0.5), wallMat);
-      col.position.set(p.x, 4, p.z);
+      const colH = 8;
+      const concreteMat = new THREE.MeshStandardMaterial({ color: 0xa8a29e, roughness: 0.9, metalness: 0.02 });
+      const concreteDarkMat = new THREE.MeshStandardMaterial({ color: 0x78716c, roughness: 0.85, metalness: 0.04 });
+      // 하부 받침대 (사다리꼴 근사 = 얇은 넓은 박스)
+      const footing = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.35, 0.9), concreteDarkMat);
+      footing.position.set(p.x, 0.175, p.z);
+      footing.castShadow = true;
+      footing.receiveShadow = true;
+      _v3d.buildingGroup.add(footing);
+      // 하부 경사 받침대 위 좁혀지는 받침
+      const footingTaper = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.25, 0.7), concreteDarkMat);
+      footingTaper.position.set(p.x, 0.475, p.z);
+      _v3d.buildingGroup.add(footingTaper);
+      // 몸통 (굵은 사각 콘크리트)
+      const col = new THREE.Mesh(new THREE.BoxGeometry(0.55, colH - 1.0, 0.55), concreteMat);
+      col.position.set(p.x, 0.6 + (colH - 1.0)/2, p.z);
+      col.castShadow = true;
       _v3d.buildingGroup.add(col);
+      // 상단 지지 헤드 (역사다리꼴)
+      const capH = 0.4;
+      const capBottom = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.2, 0.65), concreteDarkMat);
+      capBottom.position.set(p.x, colH - capH + 0.1, p.z);
+      _v3d.buildingGroup.add(capBottom);
+      const capTop = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.2, 0.85), concreteDarkMat);
+      capTop.position.set(p.x, colH - 0.1, p.z);
+      _v3d.buildingGroup.add(capTop);
     } else if (o.type === 'cctv') {
       const p = t(o.x, o.y);
       const cctv = new THREE.Mesh(new THREE.SphereGeometry(0.6, 12, 12), new THREE.MeshStandardMaterial({ color: 0x0891b2 }));
@@ -21119,24 +21253,25 @@ function _v3dDetachWalkListeners() {
 function updateWalkMovement(dt) {
   const w = _v3d.walk;
   const speed = (w.keys['ShiftLeft'] || w.keys['ShiftRight']) ? w.runSpeed : w.speed;
-  // 🔥 forward 벡터에 pitch 반영: 마우스로 카메라를 위로 올린 상태에서 W/↑ 누르면 위로 상승
-  //   THREE.js YXZ 회전 기준: 시선 방향 = (sin(yaw)*cos(pitch), sin(pitch), cos(yaw)*cos(pitch))
-  //   기존 코드가 -forward를 앞쪽으로 사용하므로 forward 부호에 맞춰 동일하게 구성
-  //   pitch가 +일 때 시선이 위로 향함(카메라 rotation.x = pitch, 시선은 -Z 방향이지만 THREE는 반대 조합).
-  //   기존 코드: forward = (sin(yaw), 0, cos(yaw)) · W → move.sub(forward) 로 -Z 진행
-  //   여기서는 pitch를 반영해 y 성분을 추가 — pitch > 0 (시선 위) 이면 y가 양수가 되도록.
-  const forward = new THREE.Vector3(
-    Math.sin(w.yaw) * Math.cos(w.pitch),
-    -Math.sin(w.pitch),                    // pitch가 양수(시선 위)면 W 진행 시 y 증가
-    Math.cos(w.yaw) * Math.cos(w.pitch)
-  );
-  const right   = new THREE.Vector3(Math.cos(w.yaw), 0, -Math.sin(w.yaw));
+  // 🔥 카메라 회전을 먼저 반영한 뒤, three.js 의 getWorldDirection() 으로 실제 시선 벡터를 얻어 이동
+  //   순서: (1) rotation 갱신 → (2) worldDirection = 카메라가 향하는 방향 → (3) W/↑ = +worldDirection, S/↓ = -worldDirection
+  //   이렇게 하면 pitch/yaw 를 어떻게 조합해도 정확히 "카메라가 바라보는 방향" 으로 이동
+  _v3d.camera.rotation.order = 'YXZ';
+  _v3d.camera.rotation.y = w.yaw;
+  _v3d.camera.rotation.x = w.pitch;
+  _v3d.camera.updateMatrixWorld(true);
+  const forward = new THREE.Vector3();
+  _v3d.camera.getWorldDirection(forward);   // 정면 시선 (정규화됨)
+  // 오른쪽 벡터 = forward × 월드 up  (수평 성분만 사용해서 자연스러운 스트레이핑)
+  const worldUp = new THREE.Vector3(0, 1, 0);
+  const right = new THREE.Vector3().crossVectors(forward, worldUp).normalize();
   const move = new THREE.Vector3();
-  if (w.keys['KeyW'] || w.keys['ArrowUp'])    move.sub(forward);
-  if (w.keys['KeyS'] || w.keys['ArrowDown'])  move.add(forward);
+  if (w.keys['KeyW'] || w.keys['ArrowUp'])    move.add(forward);
+  if (w.keys['KeyS'] || w.keys['ArrowDown'])  move.sub(forward);
   if (w.keys['KeyA'] || w.keys['ArrowLeft'])  move.sub(right);
   if (w.keys['KeyD'] || w.keys['ArrowRight']) move.add(right);
   if (move.lengthSq() > 0) move.normalize().multiplyScalar(speed * dt);
+  // 절대 상하 이동 (SPACE/CTRL)
   if (w.keys['Space'])       move.y += speed * dt;
   if (w.keys['ControlLeft']) move.y -= speed * dt;
   _v3d.camera.position.add(move);
@@ -21149,10 +21284,6 @@ function updateWalkMovement(dt) {
     _v3d.camera.position.z = Math.max(-bd/2 - 30, Math.min(bd/2 + 30, _v3d.camera.position.z));
     _v3d.camera.position.y = Math.max(0.5, Math.min(50, _v3d.camera.position.y));
   }
-  // 시선 방향 적용 (yaw + pitch)
-  _v3d.camera.rotation.order = 'YXZ';
-  _v3d.camera.rotation.y = w.yaw;
-  _v3d.camera.rotation.x = w.pitch;
 }
 // 사이드 패널 접기/펼치기
 window.v3dTogglePanels = function() {
