@@ -3899,7 +3899,8 @@
               <li><b>복사 Ctrl+C</b> · <b>붙여넣기 Ctrl+V</b> (2m 오프셋 + " (복사)" 접미사, ID 자동 재발급) · <b>잘라내기 Ctrl+X</b> · <b>즉시 복제 Ctrl+D</b></li>
               <li><b>Ctrl+A</b> 전체 선택 (센터의 모든 오브젝트 다중 선택 상태로) · <b>Shift/Ctrl+클릭</b> 도면에서 개별 다중 선택 토글</li>
               <li><b>🖱️ 다중선택 후 드래그</b>: Ctrl+클릭으로 여러 랙을 선택한 뒤 그중 하나를 마우스 드래그하면 <b>선택된 그룹 전체가 함께 이동</b>합니다 (상대 위치 유지 · 도면 경계·타 랙 자동 회피).</li>
-              <li><b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동 (다중선택 시 그룹 전체)</li>
+              <li><b>⌨️ 화살표 이동 (신규)</b>: 오브젝트가 <b>선택된 상태에서 ↑↓←→ 만 눌러도</b> 0.5m씩 이동. <b>Shift+↑↓←→</b> 5m 대폭 이동. 다중선택 시 그룹 전체 이동. 선택된 것이 없으면 화살표는 종전대로 도면 팬(스크롤).</li>
+              <li><b>Alt+↑↓←→</b> 예전 습관 그대로 미세 이동 유지 (단축키 유호환)</li>
               <li><b>정렬 8종</b>: ⇤ 왼쪽 / ⇔ 가로 중앙 / ⇥ 오른쪽 / ⇧ 상단 / ⇕ 세로 중앙 / ⇩ 하단 / ↔ 가로 균등 분포 / ↕ 세로 균등 분포 (2개↑ 선택 시)</li>
             </ul>
           </li>
@@ -15611,7 +15612,7 @@ function objectCBM(o) {
   // 매자닌: 하위 선반랙/평치의 CBM 합계 (이동동선/계단은 제외)
   if (o && o.type === 'rack-mezzanine' && Array.isArray(o.children) && o.children.length > 0) {
     return o.children.reduce((sum, ch) => {
-      if (ch.type === 'path' || ch.type === 'stairs') return sum; // 동선·계단은 CBM 미산정
+      if (ch.type === 'path' || ch.type === 'stairs' || ch.type === 'workshop') return sum; // 동선·계단·작업장은 CBM 미산정
       const chW = +ch.w || 0, chH = +ch.h || 0;
       const chHeightM = ch.type === 'flat'
         ? (+ch.heightM || 2.0)
@@ -16844,7 +16845,7 @@ window.MANUAL_DATA = {
             { id: 'fp-cl-2', title: '단축키', desc: '<b>복사 Ctrl+C</b> · <b>붙여넣기 Ctrl+V</b> (2m 오프셋 + " (복사)" 접미사, ID 자동 재발급) · <b>잘라내기 Ctrl+X</b> · <b>즉시 복제 Ctrl+D</b>.' },
             { id: 'fp-cl-3', title: '전체 선택 · 다중 선택', desc: '<b>Ctrl+A</b> 전체 선택 · <b>Shift/Ctrl+클릭</b> 도면에서 개별 다중 선택 토글.' },
             { id: 'fp-cl-3b', title: '🖱️ 다중선택 드래그 이동 (신규)', desc: '<b>Ctrl+클릭으로 여러 랙을 선택한 뒤 그중 하나를 드래그</b>하면 <b>선택된 그룹 전체가 함께 이동</b>합니다. 그룹 내 오브젝트 간 상대 위치는 유지되고, 도면 테두리·기타 랙과 겹치지 않도록 자동 클램프됩니다. (Ctrl+C/V/D 복사·복제도 다중선택 그룹 전체에 적용)' },
-            { id: 'fp-cl-4', title: '미세 이동', desc: '<b>Alt+↑↓←→</b> 선택 오브젝트 0.5m 미세 이동 · <b>Alt+Shift+↑↓←→</b> 5m 대폭 이동. 다중선택 상태에서는 그룹 전체가 함께 이동.' },
+            { id: 'fp-cl-4', title: '⌨️ 화살표 이동 (개선)', desc: '오브젝트 <b>선택된 상태에서 ↑↓←→만 눌러도</b> 0.5m씩 이동. <b>Shift+↑↓←→</b> 5m 대폭 이동. 다중선택 시 그룹 전체. 선택된 오브젝트가 없을 때만 종전대로 화살표가 도면 팬(스크롤)로 동작. <b>Alt+↑↓←→</b>는 예전 습관 그대로 이동으로 유지.' },
             { id: 'fp-cl-5', title: '정렬 8종', desc: '⇤ 왼쪽 / ⇔ 가로 중앙 / ⇥ 오른쪽 / ⇧ 상단 / ⇕ 세로 중앙 / ⇩ 하단 / ↔ 가로 균등 분포 / ↕ 세로 균등 분포 (2개↑ 선택 시).' },
             { id: 'fp-cl-6', title: '💠 다중선택 시각 표시', desc: '<b>Shift/Ctrl+클릭</b> 또는 표에서 체크한 오브젝트에 <b>파란 점선 굵은 테두리</b> + 드롭섀도우로 도면에서 즉시 식별 가능.' },
           ]},
@@ -16891,6 +16892,7 @@ window.MANUAL_DATA = {
             { id: 'fp-m-7', title: '🖼️ 매자닌 미니 편집기', desc: '매자닌 편집기 안에 <b>축소 SVG 캔버스</b> — 현재 활성 층의 하위 오브젝트(선반랙/평치)만 크게 표시하여 <b>마우스 드래그로 위치 이동</b> 가능. 다른 층 오브젝트는 회색으로 참고 표시.' },
             { id: 'fp-m-8', title: '🏢 매자닌 하위 높이 필드', desc: '매자닌 내부 선반랙/평치 각각에 <b>높이 컬럼</b> 추가. 선반랙은 <b>단높이</b>(mm) · 평치는 <b>총 높이</b>(mm). 기본 규격에서도 지정 → 이후 추가 시 자동 반영.' },
             { id: 'fp-m-9', title: '🪜 이동계단 · 🚶 이동동선', desc: '매자닌 편집기에서 <b>🪜 이동계단</b> · <b>🚶 이동동선</b> 추가 가능. 이동동선은 시작·끝 지점을 마우스로 조정. 둘 다 CBM 미산정 (작업 동선/구조물).' },
+            { id: 'fp-m-10', title: '🔨 작업장 (신규)', desc: '매자닌 하위에 <b>🔨 작업장</b> 추가 가능. 포장·검수·리패키징 등 작업 공간을 도면에 표시. 기본 규격 3m × 3m. <b>노랑-주황 대각 스트라이프</b> 패턴으로 저장 랙과 확연히 구분. 계단·동선처럼 <b>CBM 미산정</b>(공간이지만 저장 용도 아님) — 매자닌 총 CBM 합계에서 자동 제외.' },
           ]},
           { id: 'fp-dock', title: '🚛 상하차 도크', items: [
             { id: 'fp-d-1', title: '기본 규격', desc: '도크에 <b>크기 조절(3m×2m 기본)</b> · <b>노란-주황 스트라이프 마킹</b> · <b>라벨 표시</b>. 리사이즈 핸들로 실제 도크 도어 크기에 맞춰 조절. 3D 뷰에서도 실 크기 반영.' },
@@ -17984,6 +17986,18 @@ function renderRack2D(o, PAD, SCALE, isSelected) {
         return `<rect x="${cx}" y="${cy}" width="${cw}" height="${chh}" fill="#0891b2" fill-opacity="0.45" stroke="#0e7490" stroke-width="1.2" rx="1" pointer-events="none"/>
                 <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="8" fill="#0e7490" font-weight="700" pointer-events="none">${ch.label||'평치'}</text>`;
       }
+      if (ch.type === 'workshop') {
+        // 작업장: 노랑-주황 대각 스트라이프 + 🔨 아이콘
+        const stripeId = `wsStripe-${o.id}-${cIdx}`;
+        return `<defs>
+                  <pattern id="${stripeId}" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                    <rect width="6" height="6" fill="#fef3c7"/>
+                    <rect width="3" height="6" fill="#f59e0b" opacity="0.55"/>
+                  </pattern>
+                </defs>
+                <rect x="${cx}" y="${cy}" width="${cw}" height="${chh}" fill="url(#${stripeId})" stroke="#b45309" stroke-width="1.5" rx="1.5" pointer-events="none"/>
+                <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="8" fill="#78350f" font-weight="700" pointer-events="none">🔨 ${ch.label||'작업장'}</text>`;
+      }
       return `<rect x="${cx}" y="${cy}" width="${cw}" height="${chh}" fill="#7c3aed" fill-opacity="0.45" stroke="#5b21b6" stroke-width="1.2" rx="1" pointer-events="none"/>
               <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="7" fill="#5b21b6" font-weight="700" pointer-events="none">${ch.label||'SL'}</text>`;
     }).join('');
@@ -18949,7 +18963,7 @@ function renderMezzanineMiniCanvas(c, mez, activeFloor) {
         <span style="font-size:12px; font-weight:700; color:#166534;">🖼️ 매자닌 ${activeFloor}단 미니 편집기</span>
         <span style="font-size:10px; color:#4b5563;">${mezW_m}m × ${mezH_m}m (실 크기) · <b>${activeFloor}단</b> 하위 오브젝트만 표시 · 드래그로 이동</span>
         <span style="flex:1;"></span>
-        <span style="font-size:11px; padding:2px 8px; background:#dcfce7; color:#166534; border-radius:10px; font-weight:700;">🟪 선반랙 · <span style="color:#0891b2;">📦 평치</span></span>
+        <span style="font-size:11px; padding:2px 8px; background:#dcfce7; color:#166534; border-radius:10px; font-weight:700;">🟪 선반랙 · <span style="color:#0891b2;">📦 평치</span> · <span style="color:#b45309;">🔨 작업장</span></span>
       </div>
       <div style="overflow:auto; max-width:100%; border:1px solid #86efac; border-radius:4px; background:#f0fdf4;">
         <svg width="${w+40}" height="${h+40}" viewBox="0 0 ${w+40} ${h+40}" style="display:block; user-select:none;">
@@ -19012,6 +19026,23 @@ function renderMezzanineMiniCanvas(c, mez, activeFloor) {
             const cy = 20 + (+ch.y||0) * scale;
             const cw = (+ch.w||1.2) * scale;
             const chh = (+ch.h||0.6) * scale;
+            // 작업장(workshop): 노랑-주황 스트라이프
+            if (ch.type === 'workshop') {
+              const stripeId = `mezMiniWsStripe-${mez.id}-${x.idx}`;
+              return `
+                <g class="mez-mini-obj" data-idx="${x.idx}" style="cursor:move;"
+                  onmousedown="startMezMiniDrag(event, '${c.id}', '${mez.id}', ${x.idx})">
+                  <defs>
+                    <pattern id="${stripeId}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                      <rect width="8" height="8" fill="#fef3c7"/>
+                      <rect width="4" height="8" fill="#f59e0b" opacity="0.7"/>
+                    </pattern>
+                  </defs>
+                  <rect x="${cx}" y="${cy}" width="${cw}" height="${chh}"
+                    fill="url(#${stripeId})" stroke="#b45309" stroke-width="1.8" rx="2"/>
+                  <text x="${cx+cw/2}" y="${cy+chh/2+3}" text-anchor="middle" font-size="${Math.max(9, Math.min(12, cw/6))}" fill="#78350f" font-weight="700" pointer-events="none">🔨 ${ch.label||'작업장'}</text>
+                </g>`;
+            }
             const isFlat = ch.type === 'flat';
             const fill = isFlat ? '#0891b2' : '#7c3aed';
             const stroke = isFlat ? '#0e7490' : '#5b21b6';
@@ -19130,10 +19161,11 @@ function renderMezzanineChildrenEditor(c, mez) {
   const rows = filteredChildrenWithIdx.map((x, seq) => {
     const ch = x.ch, i = x.i;
     const checked = window._mezChecked.has(i);
-    const tool = ch.type === 'flat'    ? { icon:'📦', label:'평치',  color:'#0891b2' }
-              : ch.type === 'stairs'   ? { icon:'🪜', label:'계단',  color:'#78716c' }
-              : ch.type === 'path'     ? { icon:'🚶', label:'동선',  color:'#d97706' }
-              :                          { icon:'🟪', label:'선반',  color:'#7c3aed' };
+    const tool = ch.type === 'flat'     ? { icon:'📦', label:'평치',   color:'#0891b2' }
+              : ch.type === 'stairs'    ? { icon:'🪜', label:'계단',   color:'#78716c' }
+              : ch.type === 'path'      ? { icon:'🚶', label:'동선',   color:'#d97706' }
+              : ch.type === 'workshop'  ? { icon:'🔨', label:'작업장', color:'#b45309' }
+              :                           { icon:'🟪', label:'선반',   color:'#7c3aed' };
     const floorOpts = Array.from({length: mezLevels}).map((_,fi) =>
       `<option value="${fi+1}" ${(+ch.floor||1)===(fi+1)?'selected':''}>${fi+1}단</option>`).join('');
     // 존/로케이션 (기본: 매자닌 존 · 로케이션 F{floor}-{seq})
@@ -19241,6 +19273,9 @@ function renderMezzanineChildrenEditor(c, mez) {
         <button type="button" onclick="addMezzanineChild('${c.id}','${mez.id}','flat', ${activeFloor})"
           title="설정한 평치 규격으로 ${activeFloor}단에 추가"
           style="background:#0891b2; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;">➕ 평치</button>
+        <button type="button" onclick="addMezzanineChild('${c.id}','${mez.id}','workshop', ${activeFloor})"
+          title="작업장 추가 - ${activeFloor}단에 배치 · CBM 미산정 (작업/포장·검수 공간)"
+          style="background:#b45309; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;">🔨 작업장</button>
         <button type="button" onclick="addMezzanineChild('${c.id}','${mez.id}','stairs', ${activeFloor})"
           title="이동계단 추가 - ${activeFloor}단에 배치"
           style="background:#78716c; color:#fff; border:none; padding:5px 10px; border-radius:4px; cursor:pointer; font-size:11px; font-weight:700;">🪜 이동계단</button>
@@ -19342,6 +19377,29 @@ window.addMezzanineChild = async function(centerId, mezId, childType, floor) {
     await saveCenterOps();
     renderCenterOps();
     log(`🪜 ${targetFloor}단에 이동계단 추가`, 'success');
+    return;
+  }
+  // 작업장(workshop) 추가: 매자닌 중앙 부근에 기본 배치 · CBM 미산정
+  if (childType === 'workshop') {
+    pushFloorplanUndo('매자닌 작업장 추가');
+    const mezW = +mez.w || 6, mezH = +mez.h || 6;
+    const sameFloorWs = mez.children.filter(x => (+x.floor||1) === targetFloor && x.type === 'workshop').length + 1;
+    // 작업장 표준 크기 (3m × 3m — 1인 작업 공간)
+    const ww = Math.min(3, Math.max(1, mezW - 1));
+    const wh = Math.min(3, Math.max(1, mezH - 1));
+    // 겹치지 않게 순번별로 오프셋
+    const off = (sameFloorWs - 1) * 0.5;
+    mez.children.push({
+      type: 'workshop',
+      label: `F${targetFloor}-작업${sameFloorWs}`,
+      floor: targetFloor,
+      x: Math.min(mezW - ww, Math.max(0, mezW/2 - ww/2 + off)),
+      y: Math.min(mezH - wh, Math.max(0, mezH/2 - wh/2 + off)),
+      w: ww, h: wh, heightM: 2.5,  // 참고용 높이 (CBM 산정에는 미반영)
+    });
+    await saveCenterOps();
+    renderCenterOps();
+    log(`🔨 ${targetFloor}단에 작업장 추가 (CBM 미산정)`, 'success');
     return;
   }
   pushFloorplanUndo('매자닌 하위 오브젝트 추가');
@@ -21432,17 +21490,21 @@ function wireFloorplanEditor(c) {
         toggleFloorplanFullscreen();
         return;
       }
-      // Alt+화살표 = 선택 오브젝트 미세 이동 (Alt+Shift = 5m씩)
-      if (e.altKey && ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
-        e.preventDefault();
-        const step = e.shiftKey ? 5 : 0.5;
-        const map = { ArrowUp:[0,-step], ArrowDown:[0,step], ArrowLeft:[-step,0], ArrowRight:[step,0] };
-        const [dx, dy] = map[e.key];
-        await nudgeFloorplanSelection(dx, dy);
-        return;
-      }
-      // 화살표 = 도면 팬 이동 (Shift 조합 시 대폭 이동)
+      // 화살표: 선택된 오브젝트/그룹이 있으면 오브젝트 이동, 없으면 도면 팬 이동
+      //   · 이동 스텝: 기본 0.5m · Shift = 5m 대폭 · Alt+화살표는 예전 습관 그대로 이동 유지
+      //   · 팬 스텝: 기본 60px · Shift = 200px 대폭
       if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+        const hasSelection = floorplanSelectedId || floorplanListChecked.size > 0;
+        // 오브젝트 이동: 선택이 있거나 Alt 조합이면
+        if (hasSelection || e.altKey) {
+          e.preventDefault();
+          const step = e.shiftKey ? 5 : 0.5;
+          const map = { ArrowUp:[0,-step], ArrowDown:[0,step], ArrowLeft:[-step,0], ArrowRight:[step,0] };
+          const [dx, dy] = map[e.key];
+          await nudgeFloorplanSelection(dx, dy);
+          return;
+        }
+        // 선택 없음: 도면 팬 이동
         const wrap = document.getElementById('floorplanSvgWrap');
         if (!wrap) return;
         e.preventDefault();
